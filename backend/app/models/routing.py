@@ -33,6 +33,16 @@ class RouteRequest(BaseModel):
     )
 
 
+class RoutingExplanation(BaseModel):
+    summary: str
+    selection_reason: str
+    complexity_reason: str
+    reasoning_reason: str
+    compute_quality_tradeoff: str
+    override_reason: str
+    signals: list[str]
+
+
 class RoutingDecision(BaseModel):
     recommended_tier: str
     selected_tier: str
@@ -45,6 +55,7 @@ class RoutingDecision(BaseModel):
     thinking_enabled: bool
 
     analysis: QueryAnalysis
+    explanation: RoutingExplanation
 
 
 class RoutedResponse(BaseModel):

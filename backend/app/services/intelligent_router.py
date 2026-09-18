@@ -8,6 +8,7 @@ from app.models.routing import (
 )
 from app.services.multi_model_service import MultiModelService
 from app.services.query_analyzer import QueryAnalyzer
+from app.services.routing_explanation import RoutingExplanationService
 
 
 class IntelligentRouter:
@@ -15,15 +16,17 @@ class IntelligentRouter:
     Core AURA routing engine.
 
     Supports:
-    - automatic routing from query analysis
-    - manual tier override
-    - automatic reasoning-mode policy
-    - manual reasoning-mode override
+    - automatic routing
+    - manual model-tier override
+    - reasoning-mode policy
+    - manual thinking override
+    - structured routing explanations
     """
 
     def __init__(self) -> None:
         self.analyzer = QueryAnalyzer()
         self.models = MultiModelService()
+        self.explanations = RoutingExplanationService()
 
     def route(
         self,
@@ -49,7 +52,9 @@ class IntelligentRouter:
                 override_tier
             )
         else:
-            selected_tier = recommended_tier
+            selected_tier = (
+                recommended_tier
+            )
 
         profile = get_model_by_tier(
             selected_tier
@@ -86,6 +91,28 @@ class IntelligentRouter:
             think=thinking_enabled,
         )
 
+        explanation = (
+            self.explanations.explain(
+                analysis=analysis,
+                recommended_tier=(
+                    recommended_tier
+                ),
+                selected_tier=(
+                    selected_tier
+                ),
+                selected_profile=profile,
+                override_applied=(
+                    override_applied
+                ),
+                thinking_enabled=(
+                    thinking_enabled
+                ),
+                thinking_override_applied=(
+                    thinking_override_applied
+                ),
+            )
+        )
+
         routing = RoutingDecision(
             recommended_tier=(
                 recommended_tier.value
@@ -109,6 +136,7 @@ class IntelligentRouter:
                 thinking_enabled
             ),
             analysis=analysis,
+            explanation=explanation,
         )
 
         return RoutedResponse(
@@ -134,12 +162,6 @@ class IntelligentRouter:
         analysis,
         tier: ModelTier,
     ) -> bool:
-        """
-        Initial deterministic reasoning policy.
-
-        Thinking is enabled only for HIGH-tier requests
-        that clearly require deeper reasoning.
-        """
 
         return (
             tier == ModelTier.HIGH

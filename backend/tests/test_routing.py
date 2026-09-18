@@ -276,6 +276,38 @@ def test_route_api_override():
                     "has_multiple_requirements": False,
                 },
             },
+            "explanation": {
+                "summary": (
+                    "AURA selected the HIGH tier "
+                    "using Qwen3 8B."
+                ),
+                "selection_reason": (
+                    "AURA recommended LOW, but the user "
+                    "explicitly selected HIGH."
+                ),
+                "complexity_reason": (
+                    "The query received a complexity score "
+                    "of 1/10 and was classified as an "
+                    "extraction task."
+                ),
+                "reasoning_reason": (
+                    "Thinking mode was not required "
+                    "for this query."
+                ),
+                "compute_quality_tradeoff": (
+                    "HIGH prioritizes reasoning quality "
+                    "and capability for difficult tasks, "
+                    "accepting higher latency and compute usage."
+                ),
+                "override_reason": (
+                    "User override changed the route "
+                    "from LOW to HIGH."
+                ),
+                "signals": [
+                    "task_type=extraction",
+                    "complexity=1/10",
+                ],
+            },
         },
         "response": "25 September",
         "prompt_tokens": 10,
