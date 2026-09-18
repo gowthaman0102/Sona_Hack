@@ -17,6 +17,7 @@ import type {
   HealthResponse,
   ModelInfo,
 } from '../api/types'
+import AuraSessionProvider from '../context/AuraSessionProvider'
 
 
 const fallbackModels: ModelInfo[] = [
@@ -232,7 +233,9 @@ export default function AppLayout() {
           </div>
         )}
 
-        <Outlet context={context} />
+        <AuraSessionProvider>
+          <Outlet context={context} />
+        </AuraSessionProvider>
       </main>
     </div>
   )

@@ -7,11 +7,8 @@ import {
   analyzePrompt,
   routePrompt,
 } from '../api/client'
-import type {
-  ModelTier,
-  QueryAnalysis,
-  RoutedResponse,
-} from '../api/types'
+import { useAuraSession } from '../context/useAuraSession'
+import type { ModelTier } from '../api/types'
 
 
 function formatNumber(
@@ -27,15 +24,16 @@ function formatNumber(
 
 
 export default function RoutePromptPage() {
-  const [prompt, setPrompt] = useState(
-    'Explain how database indexing improves query performance.',
-  )
-  const [overrideTier, setOverrideTier] =
-    useState<ModelTier | ''>('')
-  const [analysis, setAnalysis] =
-    useState<QueryAnalysis | null>(null)
-  const [routeResult, setRouteResult] =
-    useState<RoutedResponse | null>(null)
+  const {
+    analysis,
+    overrideTier,
+    prompt,
+    routeResult,
+    setAnalysis,
+    setOverrideTier,
+    setPrompt,
+    setRouteResult,
+  } = useAuraSession()
   const [routing, setRouting] = useState(false)
   const [routingStage, setRoutingStage] =
     useState<'analyzing' | 'generating'>('analyzing')

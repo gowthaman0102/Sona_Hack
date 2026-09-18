@@ -4,7 +4,7 @@ import {
 } from 'react'
 
 import { multiRoutePrompt } from '../api/client'
-import type { MultiTaskExecutionResult } from '../api/types'
+import { useAuraSession } from '../context/useAuraSession'
 
 
 function formatNumber(
@@ -20,11 +20,12 @@ function formatNumber(
 
 
 export default function MultiTaskPage() {
-  const [multiPrompt, setMultiPrompt] = useState(
-    'Summarize why database indexes improve performance; extract the email alice@example.com; and explain when a full table scan may still be useful.',
-  )
-  const [multiResult, setMultiResult] =
-    useState<MultiTaskExecutionResult | null>(null)
+  const {
+    multiPrompt,
+    multiResult,
+    setMultiPrompt,
+    setMultiResult,
+  } = useAuraSession()
   const [multiRouting, setMultiRouting] = useState(false)
   const [multiError, setMultiError] =
     useState<string | null>(null)

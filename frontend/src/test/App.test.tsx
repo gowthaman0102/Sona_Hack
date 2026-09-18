@@ -556,4 +556,139 @@ describe('AURA routed dashboard', () => {
     expect(taskScope.queryByText('Compute')).not.toBeInTheDocument()
     expect(taskScope.queryByText('Scope')).not.toBeInTheDocument()
   })
+
+  it('preserves Multi-Task prompt and result across navigation without refetching', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = input.toString()
+
+      if (url.endsWith('/health')) {
+        return jsonResponse(healthResponse)
+      }
+      if (url.endsWith('/models')) {
+        return jsonResponse(modelsResponse)
+      }
+      if (url.endsWith('/multi-route')) {
+        return jsonResponse(multiResponse())
+      }
+
+      throw new Error(`Unexpected URL: ${url}`)
+    })
+
+    renderApp('/multi-task')
+    await screen.findByText('System healthy')
+
+    const multiPrompt = screen.getByLabelText('Multi-task prompt')
+    await userEvent.clear(multiPrompt)
+    await userEvent.type(multiPrompt, 'Remember this multi-task prompt')
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: /Route Multi-Task/i,
+      }),
+    )
+    await screen.findByText('alice@example.com')
+
+    await userEvent.click(
+      screen.getByRole('link', { name: 'Route Prompt' }),
+    )
+    await userEvent.click(
+      screen.getByRole('link', { name: 'Multi-Task' }),
+    )
+
+    expect(screen.getByLabelText('Multi-task prompt')).toHaveValue(
+      'Remember this multi-task prompt',
+    )
+    expect(screen.getByText('alice@example.com')).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        input.toString().endsWith('/multi-route'),
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('preserves Route Prompt result across navigation', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = input.toString()
+
+      if (url.endsWith('/health')) {
+        return jsonResponse(healthResponse)
+      }
+      if (url.endsWith('/models')) {
+        return jsonResponse(modelsResponse)
+      }
+      if (url.endsWith('/analysis')) {
+        return jsonResponse(routeResponse().routing.analysis)
+      }
+      if (url.endsWith('/route')) {
+        return jsonResponse(routeResponse())
+      }
+
+      throw new Error(`Unexpected URL: ${url}`)
+    })
+
+    renderApp('/route')
+    await screen.findByText('System healthy')
+    const prompt = screen.getByLabelText('Prompt')
+    await userEvent.clear(prompt)
+    await userEvent.type(prompt, 'Remember this route prompt')
+    await userEvent.click(
+      screen.getByRole('button', { name: /Route Prompt/i }),
+    )
+    await screen.findByText('alice@example.com')
+
+    await userEvent.click(
+      screen.getByRole('link', { name: 'Multi-Task' }),
+    )
+    await userEvent.click(
+      screen.getByRole('link', { name: 'Route Prompt' }),
+    )
+
+    expect(screen.getByLabelText('Prompt')).toHaveValue(
+      'Remember this route prompt',
+    )
+    expect(screen.getByText('alice@example.com')).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        input.toString().endsWith('/route'),
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('replaces a saved Multi-Task result on a new submission', async () => {
+    let responseIndex = 0
+    const responses = [
+      multiResponse(),
+      {
+        ...multiResponse(),
+        aggregated_response: 'A newer response',
+      },
+    ]
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = input.toString()
+
+      if (url.endsWith('/health')) {
+        return jsonResponse(healthResponse)
+      }
+      if (url.endsWith('/models')) {
+        return jsonResponse(modelsResponse)
+      }
+      if (url.endsWith('/multi-route')) {
+        return jsonResponse(responses[responseIndex++])
+      }
+
+      throw new Error(`Unexpected URL: ${url}`)
+    })
+
+    renderApp('/multi-task')
+    await screen.findByText('System healthy')
+    const submit = screen.getByRole('button', {
+      name: /Route Multi-Task/i,
+    })
+
+    await userEvent.click(submit)
+    await screen.findByText('alice@example.com')
+    await userEvent.click(submit)
+
+    await screen.findByText('A newer response')
+    expect(screen.queryByText('Task 1 - Extraction')).not.toBeInTheDocument()
+  })
 })
