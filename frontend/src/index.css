@@ -1,0 +1,11 @@
+﻿html {
+  background: #f5f7fb;
+}
+
+body {
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(91, 92, 240, 0.2);
+}
