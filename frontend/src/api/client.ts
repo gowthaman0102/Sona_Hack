@@ -2,14 +2,10 @@
   AnalyzeRequest,
   ApiErrorPayload,
   HealthResponse,
-  LearningHistory,
-  LearningRecommendation,
   ModelInfo,
   ModelsResponse,
-  ModelTier,
   MultiRouteRequest,
   MultiTaskExecutionResult,
-  PerformanceStats,
   QueryAnalysis,
   RouteRequest,
   RoutedResponse,
@@ -114,38 +110,6 @@ export async function multiRoutePrompt(
       method: 'POST',
       body: JSON.stringify(payload),
     },
-  )
-}
-
-
-export async function getLearningHistory(): Promise<LearningHistory> {
-  return request<LearningHistory>(
-    '/learning/history',
-  )
-}
-
-
-export async function getTaskLearningHistory(
-  taskType: string,
-): Promise<PerformanceStats[]> {
-  return request<PerformanceStats[]>(
-    `/learning/history/${encodeURIComponent(taskType)}`,
-  )
-}
-
-
-export async function getLearningRecommendation(
-  taskType: string,
-  baselineTier: ModelTier,
-): Promise<LearningRecommendation> {
-  const query = new URLSearchParams({
-    baseline_tier: baselineTier,
-  })
-
-  return request<LearningRecommendation>(
-    `/learning/recommendation/${encodeURIComponent(
-      taskType,
-    )}?${query.toString()}`,
   )
 }
 

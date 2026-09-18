@@ -114,7 +114,6 @@ class MultiTaskRouter:
 
             effective_privacy = (
                 self._merge_privacy(
-                    overall_privacy,
                     shared_context_privacy,
                     task_privacy,
                 )

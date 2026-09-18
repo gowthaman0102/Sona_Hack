@@ -238,6 +238,24 @@ def test_worded_simple_arithmetic_is_verified():
     )
 
 
+def test_calculate_arithmetic_is_verified():
+    analysis = analyzer.analyze(
+        "Calculate 7*6"
+    )
+
+    result = evaluator.evaluate(
+        "42",
+        analysis,
+        prompt="Calculate 7*6",
+    )
+
+    assert result.should_escalate is False
+    assert (
+        "deterministic_arithmetic_match"
+        in result.reasons
+    )
+
+
 def test_non_arithmetic_prompt_keeps_existing_behavior():
     prompt = (
         "What is the capital of Tamil Nadu?"

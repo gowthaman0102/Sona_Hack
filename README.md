@@ -169,6 +169,10 @@ The frontend uses http://127.0.0.1:8000 as the default backend API.
 
 The backend URL can be overridden using VITE_API_BASE_URL.
 
+The dashboard navigation contains Overview, Route Prompt, and Multi-Task.
+Route metrics remain embedded in the Route Prompt results, while adaptive
+learning and query analysis operate internally as routing capabilities.
+
 ## Main API Endpoints
 
 | Method | Endpoint | Purpose |
@@ -265,7 +269,7 @@ For a live demo:
 5. Submit prompts with different complexity levels.
 6. Observe selected tier, model, explanation, privacy result, confidence, and analytics.
 7. Demonstrate arithmetic verification with `2+2`; if LOW returns an incorrect answer, AURA automatically escalates.
-8. Show learning history and adaptive recommendations.
+8. Demonstrate Multi-Task decomposition and per-task routing analytics.
 
 ### Suggested Demo Examples
 

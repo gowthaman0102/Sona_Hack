@@ -243,7 +243,7 @@ class ConfidenceEvaluator:
             return stripped
 
         match = re.search(
-            r"what\s+is\s+"
+            r"(?:what\s+is|calculate)\s+"
             r"([0-9\s+\-*/().%]+)"
             r"\??",
             stripped,

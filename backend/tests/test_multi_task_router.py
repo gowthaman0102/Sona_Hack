@@ -29,6 +29,57 @@ def mixed_prompt():
     )
 
 
+def test_required_multi_task_prompts_decompose_into_independent_tasks():
+    router = MultiTaskRouter()
+
+    scenarios = [
+        (
+            'Extract the email from "Contact alice@example.com". '
+            'Then convert "hello aura" to uppercase.',
+            [
+                "Extract the email from \"Contact alice@example.com\"",
+                'convert "hello aura" to uppercase',
+            ],
+        ),
+        (
+            'Extract the phone number from "Call me at 9876543210". '
+            'Then explain in simple terms how binary search works. '
+            'Then create a short migration plan for moving a small REST API '
+            'from SQLite to PostgreSQL.',
+            [
+                'Extract the phone number from "Call me at 9876543210"',
+                "explain in simple terms how binary search works",
+                "create a short migration plan for moving a small REST API "
+                "from SQLite to PostgreSQL",
+            ],
+        ),
+        (
+            "Calculate 2+2. Then calculate 7*6.",
+            [
+                "Calculate 2+2",
+                "calculate 7*6",
+            ],
+        ),
+        (
+            'Summarize this text: "Project meeting is Monday." '
+            'Then identify whether this contains sensitive information: '
+            '"My Aadhaar number is 1234 5678 9012."',
+            [
+                'Summarize this text: "Project meeting is Monday."',
+                'identify whether this contains sensitive information: '
+                '"My Aadhaar number is 1234 5678 9012."',
+            ],
+        ),
+    ]
+
+    for prompt, expected_tasks in scenarios:
+        result = router.decomposer.decompose(prompt)
+
+        assert result.is_multi_task is True
+        assert result.task_count == len(expected_tasks)
+        assert [task.text for task in result.tasks] == expected_tasks
+
+
 def test_three_subtasks_execute_independently_without_escalation():
     router = MultiTaskRouter()
 

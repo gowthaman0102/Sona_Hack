@@ -9,8 +9,6 @@
 import {
   analyzePrompt,
   getHealth,
-  getLearningHistory,
-  getLearningRecommendation,
   getModels,
   multiRoutePrompt,
   routePrompt,
@@ -241,72 +239,6 @@ describe('AURA API client', () => {
       fetchMock.mock.calls[0][1]
         ?.method,
     ).toBe('POST')
-  })
-
-
-  it('calls learning endpoints with expected paths', async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({}),
-          {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          },
-        ),
-      )
-
-    await getLearningHistory()
-
-    expect(
-      fetchMock.mock.calls[0][0]
-        .toString()
-        .endsWith('/learning/history'),
-    ).toBe(true)
-
-
-    fetchMock.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          task_type: 'extraction',
-          baseline_tier: 'low',
-          recommended_tier: 'low',
-          learning_applied: false,
-          reason: 'No change',
-          candidates: [],
-        }),
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      ),
-    )
-
-    await getLearningRecommendation(
-      'extraction',
-      'low',
-    )
-
-    const recommendationUrl =
-      fetchMock.mock.calls[1][0]
-        .toString()
-
-    expect(
-      recommendationUrl,
-    ).toContain(
-      '/learning/recommendation/extraction',
-    )
-
-    expect(
-      recommendationUrl,
-    ).toContain(
-      'baseline_tier=low',
-    )
   })
 
 

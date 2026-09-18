@@ -1,4 +1,4 @@
-﻿export type ModelTier = 'low' | 'medium' | 'high'
+export type ModelTier = 'low' | 'medium' | 'high'
 
 
 export type HealthResponse = {
@@ -225,37 +225,8 @@ export type MultiTaskExecutionResult = {
   total_compute_score: number
 }
 
-export type PerformanceStats = {
-  task_type: string
-  tier: string
-  attempts: number
-  successes: number
-  failures: number
-  average_confidence: number
-  average_latency_seconds: number
-  average_normalized_compute_cost: number
-  reliability_score: number
-}
-
-
-export type LearningHistory = Record<
-  string,
-  PerformanceStats
->
-
-
 export type TierReliability = {
   tier: string
   attempts: number
   reliability_score: number
-}
-
-
-export type LearningRecommendation = {
-  task_type: string
-  baseline_tier: string
-  recommended_tier: string
-  learning_applied: boolean
-  reason: string
-  candidates: TierReliability[]
 }

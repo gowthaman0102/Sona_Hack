@@ -216,6 +216,7 @@ class TaskDecomposer:
             r";+",
             r"(?m)^\s*\d+[\.\)]\s*",
             r"(?m)^\s*[-*]\s+",
+            rf"(?<=[.!?])\s+(?=(?:please\s+)?{self.action_pattern}\b)",
         ]
 
         for separator in separators:

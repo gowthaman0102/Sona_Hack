@@ -11,8 +11,6 @@ import {
   API_BASE_URL,
   analyzePrompt,
   getHealth,
-  getLearningHistory,
-  getLearningRecommendation,
   getModels,
   multiRoutePrompt,
   routePrompt,
@@ -20,8 +18,6 @@ import {
 
 import type {
   HealthResponse,
-  LearningHistory,
-  LearningRecommendation,
   ModelInfo,
   ModelTier,
   MultiTaskExecutionResult,
@@ -34,8 +30,6 @@ const navigation = [
   'Overview',
   'Route Prompt',
   'Multi-Task',
-  'Analytics',
-  'Learning',
 ]
 
 
@@ -115,24 +109,6 @@ function App() {
     useState(false)
 
   const [multiError, setMultiError] =
-    useState<string | null>(null)
-
-  const [learningHistory, setLearningHistory] =
-    useState<LearningHistory>({})
-
-  const [learningRecommendation, setLearningRecommendation] =
-    useState<LearningRecommendation | null>(null)
-
-  const [learningTaskType, setLearningTaskType] =
-    useState('extraction')
-
-  const [learningBaselineTier, setLearningBaselineTier] =
-    useState<ModelTier>('low')
-
-  const [learningLoading, setLearningLoading] =
-    useState(false)
-
-  const [learningError, setLearningError] =
     useState<string | null>(null)
 
   const [activeNavigation, setActiveNavigation] =
@@ -255,8 +231,6 @@ function App() {
       Overview: 'overview',
       'Route Prompt': 'route-prompt',
       'Multi-Task': 'multi-task',
-      Analytics: 'analytics',
-      Learning: 'learning',
     }
 
     const targetId =
@@ -269,16 +243,6 @@ function App() {
           )
         : null
 
-    if (
-      item === 'Analytics'
-      && !element
-    ) {
-      element =
-        document.getElementById(
-          'route-prompt',
-        )
-    }
-
     if (!element) {
       return
     }
@@ -289,50 +253,6 @@ function App() {
       behavior: 'smooth',
       block: 'start',
     })
-  }
-
-
-  async function loadLearningData(
-    taskType = learningTaskType,
-    baselineTier = learningBaselineTier,
-  ) {
-    try {
-      setLearningLoading(true)
-      setLearningError(null)
-
-      const [
-        history,
-        recommendation,
-      ] = await Promise.all([
-        getLearningHistory(),
-        getLearningRecommendation(
-          taskType,
-          baselineTier,
-        ),
-      ])
-
-      setLearningHistory(history)
-      setLearningRecommendation(
-        recommendation,
-      )
-    } catch (error) {
-      setLearningError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to load adaptive learning data.',
-      )
-    } finally {
-      setLearningLoading(false)
-    }
-  }
-
-
-  async function handleLearningRefresh(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault()
-
-    await loadLearningData()
   }
 
 
@@ -373,11 +293,6 @@ function App() {
     }
   }
 
-
-  const learningRecords =
-    Object.values(
-      learningHistory,
-    )
 
   const selectedTier =
     routeResult?.routing.selected_tier
@@ -1490,391 +1405,6 @@ function App() {
                   ),
                 )}
               </div>
-            </div>
-          )}
-        </section>
-
-
-        <section
-          className="panel learning-panel"
-          id="learning"
-        >
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">
-                Adaptive Learning
-              </p>
-
-              <h2>
-                Historical reliability and tier adaptation
-              </h2>
-            </div>
-
-            <span className="panel-tag">
-              Persistent Phase 10 history
-            </span>
-          </div>
-
-
-          <form
-            className="learning-controls"
-            onSubmit={handleLearningRefresh}
-          >
-            <label>
-              <span>
-                Task type
-              </span>
-
-              <select
-                onChange={(event) =>
-                  setLearningTaskType(
-                    event.target.value,
-                  )
-                }
-                value={learningTaskType}
-              >
-                <option value="extraction">
-                  Extraction
-                </option>
-
-                <option value="summarization">
-                  Summarization
-                </option>
-
-                <option value="explanation">
-                  Explanation
-                </option>
-
-                <option value="classification">
-                  Classification
-                </option>
-
-                <option value="coding">
-                  Coding
-                </option>
-
-                <option value="analysis">
-                  Analysis
-                </option>
-
-                <option value="planning">
-                  Planning
-                </option>
-              </select>
-            </label>
-
-
-            <label>
-              <span>
-                Baseline tier
-              </span>
-
-              <select
-                onChange={(event) =>
-                  setLearningBaselineTier(
-                    event.target.value as ModelTier,
-                  )
-                }
-                value={learningBaselineTier}
-              >
-                <option value="low">
-                  LOW
-                </option>
-
-                <option value="medium">
-                  MEDIUM
-                </option>
-
-                <option value="high">
-                  HIGH
-                </option>
-              </select>
-            </label>
-
-
-            <button
-              className="primary-button"
-              disabled={learningLoading}
-              type="submit"
-            >
-              {learningLoading
-                ? 'Loading...'
-                : 'Load Learning Data'}
-            </button>
-          </form>
-
-
-          {learningError && (
-            <div
-              className="route-error"
-              role="alert"
-            >
-              {learningError}
-            </div>
-          )}
-
-
-          {learningRecommendation && (
-            <div className="learning-recommendation">
-              <div className="learning-recommendation-header">
-                <div>
-                  <span>
-                    Current recommendation
-                  </span>
-
-                  <strong>
-                    {learningRecommendation.task_type}
-                  </strong>
-                </div>
-
-                <span
-                  className={
-                    `tier-pill ${
-                      learningRecommendation.recommended_tier
-                    }`
-                  }
-                >
-                  {
-                    learningRecommendation
-                      .recommended_tier
-                      .toUpperCase()
-                  }
-                </span>
-              </div>
-
-
-              <div className="learning-route-path">
-                <div>
-                  <span>
-                    Baseline
-                  </span>
-
-                  <strong>
-                    {
-                      learningRecommendation
-                        .baseline_tier
-                        .toUpperCase()
-                    }
-                  </strong>
-                </div>
-
-                <span aria-hidden="true">
-                  ?
-                </span>
-
-                <div>
-                  <span>
-                    Recommended
-                  </span>
-
-                  <strong>
-                    {
-                      learningRecommendation
-                        .recommended_tier
-                        .toUpperCase()
-                    }
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    Learning applied
-                  </span>
-
-                  <strong>
-                    {
-                      learningRecommendation
-                        .learning_applied
-                        ? 'Yes'
-                        : 'No'
-                    }
-                  </strong>
-                </div>
-              </div>
-
-
-              <p className="learning-reason">
-                {learningRecommendation.reason}
-              </p>
-
-
-              <div className="candidate-grid">
-                {
-                  learningRecommendation.candidates.map(
-                    (candidate) => (
-                      <div
-                        className="candidate-card"
-                        key={candidate.tier}
-                      >
-                        <span>
-                          {candidate.tier.toUpperCase()}
-                        </span>
-
-                        <strong>
-                          {
-                            Math.round(
-                              candidate.reliability_score *
-                                100,
-                            )
-                          }%
-                        </strong>
-
-                        <small>
-                          {candidate.attempts} attempts
-                        </small>
-                      </div>
-                    ),
-                  )
-                }
-              </div>
-            </div>
-          )}
-
-
-          <div className="learning-history-header">
-            <div>
-              <span>
-                Historical performance
-              </span>
-
-              <strong>
-                {learningRecords.length} records
-              </strong>
-            </div>
-          </div>
-
-
-          {learningRecords.length === 0 ? (
-            <div className="learning-empty">
-              Load learning data to view persistent
-              routing performance.
-            </div>
-          ) : (
-            <div className="learning-history-grid">
-              {
-                learningRecords.map(
-                  (record) => (
-                    <article
-                      className="learning-card"
-                      key={
-                        `${record.task_type}-${record.tier}`
-                      }
-                    >
-                      <div className="learning-card-header">
-                        <div>
-                          <span>
-                            {record.task_type}
-                          </span>
-
-                          <strong>
-                            {record.tier.toUpperCase()}
-                          </strong>
-                        </div>
-
-                        <strong className="reliability-score">
-                          {
-                            Math.round(
-                              record.reliability_score *
-                                100,
-                            )
-                          }%
-                        </strong>
-                      </div>
-
-
-                      <div className="learning-progress">
-                        <div
-                          style={{
-                            width:
-                              `${Math.round(
-                                record.reliability_score *
-                                  100,
-                              )}%`,
-                          }}
-                        />
-                      </div>
-
-
-                      <div className="learning-metrics">
-                        <div>
-                          <span>
-                            Attempts
-                          </span>
-
-                          <strong>
-                            {record.attempts}
-                          </strong>
-                        </div>
-
-                        <div>
-                          <span>
-                            Successes
-                          </span>
-
-                          <strong>
-                            {record.successes}
-                          </strong>
-                        </div>
-
-                        <div>
-                          <span>
-                            Failures
-                          </span>
-
-                          <strong>
-                            {record.failures}
-                          </strong>
-                        </div>
-
-                        <div>
-                          <span>
-                            Avg confidence
-                          </span>
-
-                          <strong>
-                            {
-                              Math.round(
-                                record.average_confidence *
-                                  100,
-                              )
-                            }%
-                          </strong>
-                        </div>
-
-                        <div>
-                          <span>
-                            Avg latency
-                          </span>
-
-                          <strong>
-                            {
-                              formatNumber(
-                                record
-                                  .average_latency_seconds,
-                              )
-                            }s
-                          </strong>
-                        </div>
-
-                        <div>
-                          <span>
-                            Avg compute
-                          </span>
-
-                          <strong>
-                            {
-                              formatNumber(
-                                record
-                                  .average_normalized_compute_cost,
-                              )
-                            }
-                          </strong>
-                        </div>
-                      </div>
-                    </article>
-                  ),
-                )
-              }
             </div>
           )}
         </section>

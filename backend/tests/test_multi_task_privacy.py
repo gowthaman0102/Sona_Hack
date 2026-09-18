@@ -176,6 +176,35 @@ def test_non_sensitive_multi_task_remains_standard():
         )
 
 
+def test_sensitive_subtask_does_not_contaminate_unrelated_subtask():
+    router = MultiTaskRouter()
+
+    prompt = (
+        'Summarize this text: "Project meeting is Monday." '
+        'Then identify whether this contains sensitive information: '
+        '"My Aadhaar number is 1234 5678 9012."'
+    )
+
+    outputs = [
+        generation("Project meeting: Monday"),
+        generation("contains sensitive information"),
+    ]
+
+    with patch.object(
+        router.models,
+        "generate_for_tier",
+        side_effect=outputs,
+    ):
+        result = router.execute(prompt)
+
+    assert result.privacy.requires_local is True
+    assert result.tasks[0].privacy.requires_local is False
+    assert result.tasks[0].privacy.risk_level == "none"
+    assert result.tasks[0].privacy_policy.execution_scope == "standard"
+    assert result.tasks[1].privacy.requires_local is True
+    assert result.tasks[1].privacy_policy.execution_scope == "local_only"
+
+
 def test_high_risk_shared_secret_propagates_high_risk():
 
     router = MultiTaskRouter()

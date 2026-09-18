@@ -125,9 +125,11 @@ class QueryAnalyzer:
     }
 
     ACTION_MARKERS = {
+        "calculate",
         "extract",
         "format",
         "classify",
+        "convert",
         "translate",
         "rewrite",
         "summarize",
@@ -137,6 +139,7 @@ class QueryAnalyzer:
         "compare",
         "write",
         "generate",
+        "create",
         "analyze",
         "analyse",
         "debug",

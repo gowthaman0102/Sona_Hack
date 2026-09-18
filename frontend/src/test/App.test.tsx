@@ -661,129 +661,65 @@ describe('AURA dashboard', () => {
   })
 
 
-  it('renders adaptive learning history and recommendation', async () => {
+  it('exposes only the final primary navigation entries', async () => {
     vi
       .spyOn(globalThis, 'fetch')
       .mockImplementation(
         (input) => {
-          const url =
-            input.toString()
+          const url = input.toString()
 
           if (url.endsWith('/health')) {
-            return jsonResponse(
-              healthResponse,
-            )
+            return jsonResponse(healthResponse)
           }
 
           if (url.endsWith('/models')) {
-            return jsonResponse(
-              modelsResponse,
-            )
+            return jsonResponse(modelsResponse)
           }
 
-          if (url.endsWith('/learning/history')) {
-            return jsonResponse({
-              'extraction::low': {
-                task_type: 'extraction',
-                tier: 'low',
-                attempts: 3,
-                successes: 3,
-                failures: 0,
-                average_confidence: 1,
-                average_latency_seconds: 1.485,
-                average_normalized_compute_cost: 1.485,
-                reliability_score: 0.8,
-              },
-            })
-          }
-
-          if (
-            url.includes(
-              '/learning/recommendation/extraction',
-            )
-          ) {
-            return jsonResponse({
-              task_type: 'extraction',
-              baseline_tier: 'low',
-              recommended_tier: 'low',
-              learning_applied: false,
-              reason:
-                'Insufficient historical evidence for the baseline tier.',
-              candidates: [
-                {
-                  tier: 'low',
-                  attempts: 3,
-                  reliability_score: 0.8,
-                },
-                {
-                  tier: 'medium',
-                  attempts: 0,
-                  reliability_score: 0.5,
-                },
-                {
-                  tier: 'high',
-                  attempts: 0,
-                  reliability_score: 0.5,
-                },
-              ],
-            })
-          }
-
-          throw new Error(
-            `Unexpected URL: ${url}`,
-          )
+          throw new Error(`Unexpected URL: ${url}`)
         },
       )
 
-    const { container } = render(
-      <App />,
-    )
+    render(<App />)
 
-    await screen.findByText(
-      'System healthy',
-    )
+    await screen.findByText('System healthy')
 
-    const learningPanel =
-      container.querySelector(
-        '#learning',
-      )
-
-    expect(
-      learningPanel,
-    ).not.toBeNull()
-
-    const learningScope =
-      within(
-        learningPanel as HTMLElement,
-      )
-
-    await userEvent.click(
-      learningScope.getByRole(
-        'button',
-        {
-          name: /Load Learning Data/i,
-        },
-      ),
-    )
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          'Insufficient historical evidence for the baseline tier.',
-        ),
-      ).toBeInTheDocument()
+    const navigation = screen.getByRole('navigation', {
+      name: 'Primary navigation',
     })
 
     expect(
-      learningScope.getAllByText(
-        '80%',
-      ).length,
-    ).toBeGreaterThanOrEqual(1)
+      within(navigation).getAllByRole('button'),
+    ).toHaveLength(3)
 
     expect(
-      learningScope.getByText(
-        '3 attempts',
-      ),
+      within(navigation).getByRole('button', {
+        name: 'Overview',
+      }),
     ).toBeInTheDocument()
+
+    expect(
+      within(navigation).getByRole('button', {
+        name: 'Route Prompt',
+      }),
+    ).toBeInTheDocument()
+
+    expect(
+      within(navigation).getByRole('button', {
+        name: 'Multi-Task',
+      }),
+    ).toBeInTheDocument()
+
+    expect(
+      within(navigation).queryByRole('button', {
+        name: 'Analytics',
+      }),
+    ).not.toBeInTheDocument()
+
+    expect(
+      within(navigation).queryByRole('button', {
+        name: 'Learning',
+      }),
+    ).not.toBeInTheDocument()
   })
 })
