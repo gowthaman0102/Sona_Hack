@@ -51,9 +51,19 @@ def generate_text(request: GenerateRequest):
             model=request.model,
             prompt=request.prompt,
             system_prompt=request.system_prompt,
+            think=request.think,
         )
 
-        return GenerateResponse(**result)
+        return GenerateResponse(
+            model=result["model"],
+            response=result["response"],
+            done=result["done"],
+            total_duration=result["total_duration"],
+            load_duration=result["load_duration"],
+            prompt_eval_count=result["prompt_eval_count"],
+            eval_count=result["eval_count"],
+            eval_duration=result["eval_duration"],
+        )
 
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
@@ -66,4 +76,3 @@ def generate_text(request: GenerateRequest):
             status_code=503,
             detail=f"Unable to generate response: {exc}",
         ) from exc
-

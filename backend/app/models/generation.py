@@ -18,6 +18,11 @@ class GenerateRequest(BaseModel):
         description="Optional system instruction.",
     )
 
+    think: bool = Field(
+        default=False,
+        description="Enable supported model reasoning/thinking mode.",
+    )
+
 
 class GenerateResponse(BaseModel):
     model: str

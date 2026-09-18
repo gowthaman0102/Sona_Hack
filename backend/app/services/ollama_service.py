@@ -11,7 +11,7 @@ class OllamaService:
     def __init__(
         self,
         base_url: str = "http://localhost:11434",
-        timeout: float = 120.0,
+        timeout: float = 180.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
@@ -23,6 +23,7 @@ class OllamaService:
                 timeout=self.timeout,
             )
             return response.status_code == 200
+
         except httpx.HTTPError:
             return False
 
@@ -31,6 +32,7 @@ class OllamaService:
             f"{self.base_url}/api/tags",
             timeout=self.timeout,
         )
+
         response.raise_for_status()
 
         data = response.json()
@@ -55,11 +57,14 @@ class OllamaService:
         model: str,
         prompt: str,
         system_prompt: str | None = None,
+        think: bool = False,
     ) -> dict[str, Any]:
+
         payload: dict[str, Any] = {
             "model": model,
             "prompt": prompt,
             "stream": False,
+            "think": think,
         }
 
         if system_prompt:
@@ -78,6 +83,7 @@ class OllamaService:
         return {
             "model": data.get("model", model),
             "response": data.get("response", "").strip(),
+            "thinking": data.get("thinking"),
             "done": data.get("done", False),
             "total_duration": data.get("total_duration"),
             "load_duration": data.get("load_duration"),
