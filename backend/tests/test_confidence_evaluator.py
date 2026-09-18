@@ -172,3 +172,106 @@ def test_detailed_analysis_has_high_confidence():
 
     assert result.score >= 0.80
     assert result.should_escalate is False
+
+def test_correct_simple_arithmetic_response_is_verified():
+    analysis = analyzer.analyze(
+        "2+2"
+    )
+
+    result = evaluator.evaluate(
+        "4",
+        analysis,
+        prompt="2+2",
+    )
+
+    assert result.score >= 0.80
+    assert result.should_escalate is False
+
+    assert (
+        "deterministic_arithmetic_match"
+        in result.reasons
+    )
+
+
+def test_incorrect_simple_arithmetic_response_escalates():
+    analysis = analyzer.analyze(
+        "2+2"
+    )
+
+    result = evaluator.evaluate(
+        "8",
+        analysis,
+        prompt="2+2",
+    )
+
+    assert result.score == 0.0
+    assert result.level == "low"
+    assert result.should_escalate is True
+
+    assert (
+        "deterministic_arithmetic_mismatch"
+        in result.reasons
+    )
+
+
+def test_worded_simple_arithmetic_is_verified():
+    prompt = (
+        "What is 7 * 6? "
+        "Reply with only the number."
+    )
+
+    analysis = analyzer.analyze(
+        prompt
+    )
+
+    result = evaluator.evaluate(
+        "42",
+        analysis,
+        prompt=prompt,
+    )
+
+    assert result.should_escalate is False
+
+    assert (
+        "deterministic_arithmetic_match"
+        in result.reasons
+    )
+
+
+def test_non_arithmetic_prompt_keeps_existing_behavior():
+    prompt = (
+        "What is the capital of Tamil Nadu?"
+    )
+
+    analysis = analyzer.analyze(
+        prompt
+    )
+
+    baseline = evaluator.evaluate(
+        "Chennai",
+        analysis,
+    )
+
+    result = evaluator.evaluate(
+        "Chennai",
+        analysis,
+        prompt=prompt,
+    )
+
+    assert result.score == baseline.score
+    assert result.level == baseline.level
+    assert (
+        result.should_escalate
+        == baseline.should_escalate
+    )
+    assert result.reasons == baseline.reasons
+
+    assert (
+        "deterministic_arithmetic_match"
+        not in result.reasons
+    )
+
+    assert (
+        "deterministic_arithmetic_mismatch"
+        not in result.reasons
+    )

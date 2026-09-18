@@ -158,6 +158,7 @@ class IntelligentRouter:
             confidence = self.confidence.evaluate(
                 response=result["response"],
                 analysis=analysis,
+                prompt=prompt,
             )
 
             attempts.append(
@@ -260,6 +261,9 @@ class IntelligentRouter:
                 ),
                 thinking_override_applied=(
                     thinking_override_applied
+                ),
+                escalation_applied=(
+                    current_tier != initial_tier
                 ),
             )
         )

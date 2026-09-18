@@ -180,6 +180,7 @@ class MultiTaskRouter:
                             generation["response"]
                         ),
                         analysis=task.analysis,
+                        prompt=task.text,
                     )
                 )
 

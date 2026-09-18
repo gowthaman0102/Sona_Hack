@@ -11,8 +11,8 @@ from app.api.routing import router as routing_router
 
 app = FastAPI(
     title="AURA API",
-    description="Adaptive Unified Routing Architecture for Multi-LLM Systems",
-    version="0.10.0",
+    description="Adaptive Unified Routing Architecture for Cost-Efficient and Reliable Multi-LLM Systems",
+    version="1.0.0",
 )
 
 
@@ -41,7 +41,7 @@ def root():
         "name": "AURA",
         "full_name": "Adaptive Unified Routing Architecture",
         "status": "running",
-        "version": "0.10.0",
+        "version": app.version,
     }
 
 

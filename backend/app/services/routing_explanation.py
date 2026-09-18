@@ -21,6 +21,7 @@ class RoutingExplanationService:
         override_applied: bool,
         thinking_enabled: bool,
         thinking_override_applied: bool,
+        escalation_applied: bool = False,
     ) -> RoutingExplanation:
 
         signals = self._build_signals(
@@ -39,6 +40,7 @@ class RoutingExplanationService:
                 recommended_tier=recommended_tier,
                 selected_tier=selected_tier,
                 override_applied=override_applied,
+                escalation_applied=escalation_applied,
             )
         )
 
@@ -138,6 +140,7 @@ class RoutingExplanationService:
         recommended_tier: ModelTier,
         selected_tier: ModelTier,
         override_applied: bool,
+        escalation_applied: bool,
     ) -> str:
 
         if override_applied:
@@ -146,6 +149,16 @@ class RoutingExplanationService:
                 f"{recommended_tier.value.upper()}, "
                 f"but the user explicitly selected "
                 f"{selected_tier.value.upper()}."
+            )
+
+        if escalation_applied:
+            return (
+                f"The {analysis.task_type} task with complexity "
+                f"{analysis.complexity_score}/10 initially mapped "
+                f"to the {recommended_tier.value.upper()} tier. "
+                f"AURA then escalated to "
+                f"{selected_tier.value.upper()} because the earlier "
+                f"response did not meet the confidence threshold."
             )
 
         return (

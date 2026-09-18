@@ -17,6 +17,7 @@ def explain(
     override: bool = False,
     thinking: bool = False,
     thinking_override: bool = False,
+    escalation: bool = False,
 ):
     analysis = analyzer.analyze(prompt)
 
@@ -30,6 +31,7 @@ def explain(
         override_applied=override,
         thinking_enabled=thinking,
         thinking_override_applied=thinking_override,
+        escalation_applied=escalation,
     )
 
 
@@ -192,4 +194,32 @@ def test_detected_signals():
     assert (
         "multiple_requirements"
         in result.signals
+    )
+
+def test_confidence_escalation_explanation():
+    result = explain(
+        "2+2",
+        ModelTier.LOW,
+        ModelTier.MEDIUM,
+        escalation=True,
+    )
+
+    assert "initially mapped to the LOW tier" in (
+        result.selection_reason
+    )
+
+    assert "escalated to MEDIUM" in (
+        result.selection_reason
+    )
+
+    assert "confidence threshold" in (
+        result.selection_reason
+    )
+
+    assert "2/10 initially mapped" in (
+        result.selection_reason
+    )
+
+    assert "2/10maps" not in (
+        result.selection_reason
     )

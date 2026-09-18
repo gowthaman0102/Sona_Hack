@@ -301,7 +301,7 @@ def test_multi_route_api_propagates_privacy_to_every_task():
 
 def test_api_version_is_current():
 
-    assert app.version == "0.10.0"
+    assert app.version == "1.0.0"
 
     response = client.get(
         "/"
@@ -311,5 +311,5 @@ def test_api_version_is_current():
 
     assert (
         response.json()["version"]
-        == "0.10.0"
+        == "1.0.0"
     )
