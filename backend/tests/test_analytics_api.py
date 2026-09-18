@@ -221,7 +221,7 @@ def test_multi_route_api_exposes_whole_request_analytics():
 
 def test_api_version_is_0_9_0():
 
-    assert app.version == "0.9.0"
+    assert app.version == "0.10.0"
 
     response = client.get(
         "/"
@@ -231,5 +231,5 @@ def test_api_version_is_0_9_0():
 
     assert (
         response.json()["version"]
-        == "0.9.0"
+        == "0.10.0"
     )

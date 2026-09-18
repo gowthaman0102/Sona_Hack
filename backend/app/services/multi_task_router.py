@@ -11,6 +11,8 @@ from app.models.decomposition import (
     SubtaskExecutionResult,
 )
 from app.services.analytics_calculator import AnalyticsCalculator
+from app.services.adaptive_routing_policy import AdaptiveRoutingPolicy
+from app.services.learning_outcome_recorder import LearningOutcomeRecorder
 from app.services.confidence_evaluator import ConfidenceEvaluator
 from app.services.multi_model_service import MultiModelService
 from app.services.privacy_detector import PrivacyDetector
@@ -24,7 +26,11 @@ class MultiTaskRouter:
     Executes, escalates, and aggregates decomposed subtasks.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        learning_recorder: LearningOutcomeRecorder | None = None,
+        adaptive_policy: AdaptiveRoutingPolicy | None = None,
+    ) -> None:
         self.decomposer = TaskDecomposer()
         self.models = MultiModelService()
         self.confidence = ConfidenceEvaluator()
@@ -32,6 +38,8 @@ class MultiTaskRouter:
         self.aggregator = ResultAggregator()
         self.privacy = PrivacyDetector()
         self.privacy_policy = PrivacyRoutingPolicyService()
+        self.learning_recorder = learning_recorder
+        self.adaptive_policy = adaptive_policy
 
     def execute(
         self,
@@ -69,8 +77,33 @@ class MultiTaskRouter:
 
         for task in decomposition.tasks:
 
-            initial_tier = ModelTier(
+            baseline_tier = ModelTier(
                 task.analysis.recommended_tier
+            )
+
+            adaptive_recommendation = None
+
+            if self.adaptive_policy is not None:
+                adaptive_recommendation = (
+                    self.adaptive_policy.recommend(
+                        task_type=(
+                            task.analysis.task_type
+                        ),
+                        baseline_tier=(
+                            baseline_tier.value
+                        ),
+                    )
+                )
+
+            initial_tier = (
+                ModelTier(
+                    adaptive_recommendation.recommended_tier
+                )
+                if (
+                    adaptive_recommendation is not None
+                    and adaptive_recommendation.learning_applied
+                )
+                else baseline_tier
             )
 
             task_privacy = (
@@ -284,7 +317,7 @@ class MultiTaskRouter:
                         task.analysis.task_type
                     ),
                     recommended_tier=(
-                        initial_tier.value
+                        baseline_tier.value
                     ),
                     selected_tier=(
                         current_tier.value
@@ -337,6 +370,11 @@ class MultiTaskRouter:
                         ]
                     ),
                 )
+            )
+
+        if self.learning_recorder is not None:
+            self.learning_recorder.record_tasks(
+                results
             )
 
         aggregated_response = (

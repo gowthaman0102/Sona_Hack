@@ -6,6 +6,10 @@ from pydantic import BaseModel, Field
 
 from app.models.decomposition import MultiTaskExecutionResult
 from app.services.multi_task_router import MultiTaskRouter
+from app.services.learning_context import (
+    adaptive_routing_policy,
+    learning_outcome_recorder,
+)
 
 
 class MultiRouteRequest(BaseModel):
@@ -24,7 +28,10 @@ router = APIRouter(
     tags=["Multi-Task Routing"],
 )
 
-multi_task_router = MultiTaskRouter()
+multi_task_router = MultiTaskRouter(
+    learning_recorder=learning_outcome_recorder,
+    adaptive_policy=adaptive_routing_policy,
+)
 
 
 @router.post(

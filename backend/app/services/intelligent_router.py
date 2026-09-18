@@ -11,6 +11,8 @@ from app.models.routing import (
     RoutingDecision,
 )
 from app.services.analytics_calculator import AnalyticsCalculator
+from app.services.adaptive_routing_policy import AdaptiveRoutingPolicy
+from app.services.learning_outcome_recorder import LearningOutcomeRecorder
 from app.services.confidence_evaluator import ConfidenceEvaluator
 from app.services.multi_model_service import MultiModelService
 from app.services.query_analyzer import QueryAnalyzer
@@ -33,7 +35,11 @@ class IntelligentRouter:
     - escalation history and explanation
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        learning_recorder: LearningOutcomeRecorder | None = None,
+        adaptive_policy: AdaptiveRoutingPolicy | None = None,
+    ) -> None:
         self.analyzer = QueryAnalyzer()
         self.models = MultiModelService()
         self.explanations = RoutingExplanationService()
@@ -41,6 +47,8 @@ class IntelligentRouter:
         self.analytics = AnalyticsCalculator()
         self.privacy = PrivacyDetector()
         self.privacy_policy = PrivacyRoutingPolicyService()
+        self.learning_recorder = learning_recorder
+        self.adaptive_policy = adaptive_policy
 
     def route(
         self,
@@ -65,10 +73,36 @@ class IntelligentRouter:
             override_tier is not None
         )
 
+        adaptive_recommendation = None
+
+        if (
+            not override_applied
+            and self.adaptive_policy is not None
+        ):
+            adaptive_recommendation = (
+                self.adaptive_policy.recommend(
+                    task_type=analysis.task_type,
+                    baseline_tier=(
+                        recommended_tier.value
+                    ),
+                )
+            )
+
+        adaptive_tier = (
+            ModelTier(
+                adaptive_recommendation.recommended_tier
+            )
+            if (
+                adaptive_recommendation is not None
+                and adaptive_recommendation.learning_applied
+            )
+            else recommended_tier
+        )
+
         initial_tier = (
             ModelTier(override_tier)
             if override_applied
-            else recommended_tier
+            else adaptive_tier
         )
 
         current_tier = initial_tier
@@ -280,6 +314,12 @@ class IntelligentRouter:
                 metric_attempts
             )
         )
+
+        if self.learning_recorder is not None:
+            self.learning_recorder.record_route(
+                task_type=analysis.task_type,
+                analytics=route_analytics,
+            )
 
         return RoutedResponse(
             prompt=prompt,

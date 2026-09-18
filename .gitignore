@@ -24,3 +24,4 @@ Thumbs.db
 
 # Logs
 *.log
+backend/data/learning_history.json

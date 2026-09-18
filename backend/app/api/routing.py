@@ -8,6 +8,10 @@ from app.models.routing import (
     RoutedResponse,
 )
 from app.services.intelligent_router import IntelligentRouter
+from app.services.learning_context import (
+    adaptive_routing_policy,
+    learning_outcome_recorder,
+)
 
 
 router = APIRouter(
@@ -15,7 +19,10 @@ router = APIRouter(
     tags=["Intelligent Routing"],
 )
 
-intelligent_router = IntelligentRouter()
+intelligent_router = IntelligentRouter(
+    learning_recorder=learning_outcome_recorder,
+    adaptive_policy=adaptive_routing_policy,
+)
 
 
 @router.post(
