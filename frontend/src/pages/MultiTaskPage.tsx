@@ -168,18 +168,6 @@ export default function MultiTaskPage() {
                     <strong>{task.selected_model}</strong>
                   </div>
                   <div>
-                    <span>Confidence</span>
-                    <strong>{Math.round(task.confidence.score * 100)}%</strong>
-                  </div>
-                  <div>
-                    <span>Escalated</span>
-                    <strong>{task.escalation.escalated ? 'Yes' : 'No'}</strong>
-                  </div>
-                  <div>
-                    <span>Privacy</span>
-                    <strong>{task.privacy.risk_level}</strong>
-                  </div>
-                  <div>
                     <span>Tokens</span>
                     <strong>{task.analytics.total_tokens}</strong>
                   </div>
@@ -188,16 +176,6 @@ export default function MultiTaskPage() {
                     <strong>
                       {formatNumber(task.analytics.total_latency_seconds)}s
                     </strong>
-                  </div>
-                  <div>
-                    <span>Compute</span>
-                    <strong>
-                      {formatNumber(task.analytics.normalized_compute_cost)}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>Scope</span>
-                    <strong>{task.privacy_policy.execution_scope}</strong>
                   </div>
                 </div>
 

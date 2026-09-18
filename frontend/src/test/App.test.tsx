@@ -541,6 +541,19 @@ describe('AURA routed dashboard', () => {
 
     await screen.findByText('alice@example.com')
     expect(fetchMock.mock.calls.some(([input]) => input.toString().endsWith('/multi-route'))).toBe(true)
-    expect(screen.getByText('Task 1')).toBeInTheDocument()
+
+    const taskCard = screen.getByText('Task 1').closest(
+      '.subtask-card',
+    ) as HTMLElement
+    const taskScope = within(taskCard)
+
+    expect(taskScope.getByText('Model')).toBeInTheDocument()
+    expect(taskScope.getByText('Tokens')).toBeInTheDocument()
+    expect(taskScope.getByText('Latency')).toBeInTheDocument()
+    expect(taskScope.queryByText('Confidence')).not.toBeInTheDocument()
+    expect(taskScope.queryByText('Escalated')).not.toBeInTheDocument()
+    expect(taskScope.queryByText('Privacy')).not.toBeInTheDocument()
+    expect(taskScope.queryByText('Compute')).not.toBeInTheDocument()
+    expect(taskScope.queryByText('Scope')).not.toBeInTheDocument()
   })
 })
