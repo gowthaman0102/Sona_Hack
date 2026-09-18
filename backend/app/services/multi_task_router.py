@@ -10,6 +10,7 @@ from app.models.decomposition import (
     MultiTaskExecutionResult,
     SubtaskExecutionResult,
 )
+from app.services.analytics_calculator import AnalyticsCalculator
 from app.services.confidence_evaluator import ConfidenceEvaluator
 from app.services.multi_model_service import MultiModelService
 from app.services.privacy_detector import PrivacyDetector
@@ -27,6 +28,7 @@ class MultiTaskRouter:
         self.decomposer = TaskDecomposer()
         self.models = MultiModelService()
         self.confidence = ConfidenceEvaluator()
+        self.analytics = AnalyticsCalculator()
         self.aggregator = ResultAggregator()
         self.privacy = PrivacyDetector()
         self.privacy_policy = PrivacyRoutingPolicyService()
@@ -90,6 +92,8 @@ class MultiTaskRouter:
             attempts: list[
                 EscalationAttempt
             ] = []
+
+            metric_attempts = []
 
             final_generation = None
             final_confidence = None
@@ -167,6 +171,47 @@ class MultiTaskRouter:
                     )
                 )
 
+                metric_attempts.append(
+                    self.analytics.build_attempt(
+                        tier=current_tier.value,
+                        model_name=(
+                            profile.model_name
+                        ),
+                        compute_score=(
+                            profile.compute_score
+                        ),
+                        confidence_score=(
+                            confidence.score
+                        ),
+                        confidence_level=(
+                            confidence.level
+                        ),
+                        should_escalate=(
+                            confidence.should_escalate
+                        ),
+                        prompt_tokens=(
+                            generation[
+                                "prompt_tokens"
+                            ]
+                        ),
+                        output_tokens=(
+                            generation[
+                                "output_tokens"
+                            ]
+                        ),
+                        latency_seconds=(
+                            generation[
+                                "latency_seconds"
+                            ]
+                        ),
+                        tokens_per_second=(
+                            generation[
+                                "tokens_per_second"
+                            ]
+                        ),
+                    )
+                )
+
                 final_generation = generation
                 final_confidence = confidence
                 final_thinking = thinking_enabled
@@ -225,6 +270,12 @@ class MultiTaskRouter:
                 )
             )
 
+            task_analytics = (
+                self.analytics.summarize(
+                    metric_attempts
+                )
+            )
+
             results.append(
                 SubtaskExecutionResult(
                     index=task.index,
@@ -262,6 +313,9 @@ class MultiTaskRouter:
                     privacy_policy=(
                         task_privacy_policy
                     ),
+                    analytics=(
+                        task_analytics
+                    ),
                     prompt_tokens=(
                         final_generation[
                             "prompt_tokens"
@@ -288,6 +342,15 @@ class MultiTaskRouter:
         aggregated_response = (
             self.aggregator.aggregate(
                 results
+            )
+        )
+
+        multi_task_analytics = (
+            self.analytics.summarize_tasks(
+                [
+                    task.analytics
+                    for task in results
+                ]
             )
         )
 
@@ -324,6 +387,9 @@ class MultiTaskRouter:
             task_count=len(results),
             tasks=results,
             privacy=overall_privacy,
+            analytics=(
+                multi_task_analytics
+            ),
             aggregated_response=(
                 aggregated_response
             ),

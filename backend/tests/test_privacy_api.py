@@ -1,4 +1,4 @@
-﻿from unittest.mock import patch
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -299,9 +299,9 @@ def test_multi_route_api_propagates_privacy_to_every_task():
         )
 
 
-def test_api_version_is_0_8_0():
+def test_api_version_is_current():
 
-    assert app.version == "0.8.0"
+    assert app.version == "0.9.0"
 
     response = client.get(
         "/"
@@ -311,5 +311,5 @@ def test_api_version_is_0_8_0():
 
     assert (
         response.json()["version"]
-        == "0.8.0"
+        == "0.9.0"
     )

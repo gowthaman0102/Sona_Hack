@@ -1,4 +1,9 @@
-﻿from pydantic import BaseModel
+from app.models.analytics import (
+    MultiTaskAnalytics,
+    RouteAnalytics,
+)
+
+from pydantic import BaseModel
 from app.models.privacy import (
     PrivacyAssessment,
     PrivacyRoutingPolicy,
@@ -44,6 +49,7 @@ class SubtaskExecutionResult(BaseModel):
     privacy: PrivacyAssessment
     privacy_policy: PrivacyRoutingPolicy
 
+    analytics: RouteAnalytics
     prompt_tokens: int | None = None
     output_tokens: int | None = None
     latency_seconds: float | None = None
@@ -58,6 +64,7 @@ class MultiTaskExecutionResult(BaseModel):
     tasks: list[SubtaskExecutionResult]
 
     privacy: PrivacyAssessment
+    analytics: MultiTaskAnalytics
 
     aggregated_response: str
     total_prompt_tokens: int

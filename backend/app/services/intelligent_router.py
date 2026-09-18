@@ -10,6 +10,7 @@ from app.models.routing import (
     RoutedResponse,
     RoutingDecision,
 )
+from app.services.analytics_calculator import AnalyticsCalculator
 from app.services.confidence_evaluator import ConfidenceEvaluator
 from app.services.multi_model_service import MultiModelService
 from app.services.query_analyzer import QueryAnalyzer
@@ -37,6 +38,7 @@ class IntelligentRouter:
         self.models = MultiModelService()
         self.explanations = RoutingExplanationService()
         self.confidence = ConfidenceEvaluator()
+        self.analytics = AnalyticsCalculator()
         self.privacy = PrivacyDetector()
         self.privacy_policy = PrivacyRoutingPolicyService()
 
@@ -76,6 +78,7 @@ class IntelligentRouter:
         )
 
         attempts: list[EscalationAttempt] = []
+        metric_attempts = []
 
         final_result = None
         final_confidence = None
@@ -137,6 +140,37 @@ class IntelligentRouter:
                         confidence.should_escalate
                     ),
                     reasons=confidence.reasons,
+                )
+            )
+
+            metric_attempts.append(
+                self.analytics.build_attempt(
+                    tier=current_tier.value,
+                    model_name=profile.model_name,
+                    compute_score=(
+                        profile.compute_score
+                    ),
+                    confidence_score=(
+                        confidence.score
+                    ),
+                    confidence_level=(
+                        confidence.level
+                    ),
+                    should_escalate=(
+                        confidence.should_escalate
+                    ),
+                    prompt_tokens=(
+                        result["prompt_tokens"]
+                    ),
+                    output_tokens=(
+                        result["output_tokens"]
+                    ),
+                    latency_seconds=(
+                        result["latency_seconds"]
+                    ),
+                    tokens_per_second=(
+                        result["tokens_per_second"]
+                    ),
                 )
             )
 
@@ -241,6 +275,12 @@ class IntelligentRouter:
             attempts=attempts,
         )
 
+        route_analytics = (
+            self.analytics.summarize(
+                metric_attempts
+            )
+        )
+
         return RoutedResponse(
             prompt=prompt,
             routing=routing,
@@ -249,6 +289,7 @@ class IntelligentRouter:
             escalation=escalation,
             privacy=privacy,
             privacy_policy=privacy_policy,
+            analytics=route_analytics,
             prompt_tokens=(
                 final_result["prompt_tokens"]
             ),
