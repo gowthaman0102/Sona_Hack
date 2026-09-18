@@ -1,4 +1,8 @@
 ﻿from pydantic import BaseModel
+from app.models.privacy import (
+    PrivacyAssessment,
+    PrivacyRoutingPolicy,
+)
 
 from app.models.confidence import (
     ConfidenceEvaluation,
@@ -37,6 +41,9 @@ class SubtaskExecutionResult(BaseModel):
     confidence: ConfidenceEvaluation
     escalation: EscalationSummary
 
+    privacy: PrivacyAssessment
+    privacy_policy: PrivacyRoutingPolicy
+
     prompt_tokens: int | None = None
     output_tokens: int | None = None
     latency_seconds: float | None = None
@@ -49,6 +56,8 @@ class MultiTaskExecutionResult(BaseModel):
     task_count: int
 
     tasks: list[SubtaskExecutionResult]
+
+    privacy: PrivacyAssessment
 
     aggregated_response: str
     total_prompt_tokens: int

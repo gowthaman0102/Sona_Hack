@@ -12,6 +12,8 @@ from app.models.decomposition import (
 )
 from app.services.confidence_evaluator import ConfidenceEvaluator
 from app.services.multi_model_service import MultiModelService
+from app.services.privacy_detector import PrivacyDetector
+from app.services.privacy_routing_policy import PrivacyRoutingPolicyService
 from app.services.result_aggregator import ResultAggregator
 from app.services.task_decomposer import TaskDecomposer
 
@@ -26,6 +28,8 @@ class MultiTaskRouter:
         self.models = MultiModelService()
         self.confidence = ConfidenceEvaluator()
         self.aggregator = ResultAggregator()
+        self.privacy = PrivacyDetector()
+        self.privacy_policy = PrivacyRoutingPolicyService()
 
     def execute(
         self,
@@ -49,10 +53,36 @@ class MultiTaskRouter:
             )
         )
 
+        overall_privacy = (
+            self.privacy.assess(
+                decomposition.original_prompt
+            )
+        )
+
+        shared_context_privacy = (
+            self.privacy.assess(
+                shared_context
+            )
+        )
+
         for task in decomposition.tasks:
 
             initial_tier = ModelTier(
                 task.analysis.recommended_tier
+            )
+
+            task_privacy = (
+                self.privacy.assess(
+                    task.text
+                )
+            )
+
+            effective_privacy = (
+                self._merge_privacy(
+                    overall_privacy,
+                    shared_context_privacy,
+                    task_privacy,
+                )
             )
 
             current_tier = initial_tier
@@ -70,6 +100,11 @@ class MultiTaskRouter:
                 profile = get_model_by_tier(
                     current_tier
                 )
+
+                if effective_privacy.requires_local:
+                    self.privacy_policy.assert_local_model(
+                        profile.model_name
+                    )
 
                 thinking_enabled = (
                     self._should_enable_thinking(
@@ -154,6 +189,15 @@ class MultiTaskRouter:
                 )
             )
 
+            task_privacy_policy = (
+                self.privacy_policy.evaluate(
+                    assessment=effective_privacy,
+                    selected_model=(
+                        final_profile.model_name
+                    ),
+                )
+            )
+
             escalation = (
                 EscalationSummary(
                     escalated=(
@@ -211,6 +255,12 @@ class MultiTaskRouter:
                     ),
                     escalation=(
                         escalation
+                    ),
+                    privacy=(
+                        effective_privacy
+                    ),
+                    privacy_policy=(
+                        task_privacy_policy
                     ),
                     prompt_tokens=(
                         final_generation[
@@ -273,6 +323,7 @@ class MultiTaskRouter:
             ),
             task_count=len(results),
             tasks=results,
+            privacy=overall_privacy,
             aggregated_response=(
                 aggregated_response
             ),
@@ -288,6 +339,93 @@ class MultiTaskRouter:
             total_compute_score=(
                 total_compute_score
             ),
+        )
+
+    def _merge_privacy(
+        self,
+        *assessments,
+    ):
+        categories: list[str] = []
+        signals: list[str] = []
+
+        contains_sensitive_data = False
+        requires_local = False
+
+        risk_rank = {
+            "none": 0,
+            "medium": 1,
+            "high": 2,
+        }
+
+        highest_risk = "none"
+
+        for assessment in assessments:
+
+            contains_sensitive_data = (
+                contains_sensitive_data
+                or assessment.contains_sensitive_data
+            )
+
+            requires_local = (
+                requires_local
+                or assessment.requires_local
+            )
+
+            categories.extend(
+                assessment.categories
+            )
+
+            signals.extend(
+                assessment.signals
+            )
+
+            if (
+                risk_rank[
+                    assessment.risk_level
+                ]
+                >
+                risk_rank[
+                    highest_risk
+                ]
+            ):
+                highest_risk = (
+                    assessment.risk_level
+                )
+
+        categories = list(
+            dict.fromkeys(
+                categories
+            )
+        )
+
+        signals = [
+            signal
+            for signal in dict.fromkeys(
+                signals
+            )
+            if signal
+            != "no_sensitive_data_detected"
+        ]
+
+        if not signals:
+            signals = [
+                "no_sensitive_data_detected"
+            ]
+
+        from app.models.privacy import PrivacyAssessment
+
+        return PrivacyAssessment(
+            contains_sensitive_data=(
+                contains_sensitive_data
+            ),
+            risk_level=(
+                highest_risk
+            ),
+            requires_local=(
+                requires_local
+            ),
+            categories=categories,
+            signals=signals,
         )
 
     def _should_enable_thinking(

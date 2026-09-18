@@ -1,6 +1,10 @@
 ﻿from typing import Literal
 
 from pydantic import BaseModel, Field
+from app.models.privacy import (
+    PrivacyAssessment,
+    PrivacyRoutingPolicy,
+)
 
 from app.models.confidence import (
     ConfidenceEvaluation,
@@ -69,6 +73,9 @@ class RoutedResponse(BaseModel):
 
     confidence: ConfidenceEvaluation | None = None
     escalation: EscalationSummary | None = None
+
+    privacy: PrivacyAssessment | None = None
+    privacy_policy: PrivacyRoutingPolicy | None = None
 
     prompt_tokens: int | None = None
     output_tokens: int | None = None

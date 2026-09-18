@@ -13,6 +13,8 @@ from app.models.routing import (
 from app.services.confidence_evaluator import ConfidenceEvaluator
 from app.services.multi_model_service import MultiModelService
 from app.services.query_analyzer import QueryAnalyzer
+from app.services.privacy_detector import PrivacyDetector
+from app.services.privacy_routing_policy import PrivacyRoutingPolicyService
 from app.services.routing_explanation import RoutingExplanationService
 
 
@@ -35,6 +37,8 @@ class IntelligentRouter:
         self.models = MultiModelService()
         self.explanations = RoutingExplanationService()
         self.confidence = ConfidenceEvaluator()
+        self.privacy = PrivacyDetector()
+        self.privacy_policy = PrivacyRoutingPolicyService()
 
     def route(
         self,
@@ -44,6 +48,10 @@ class IntelligentRouter:
     ) -> RoutedResponse:
 
         analysis = self.analyzer.analyze(
+            prompt
+        )
+
+        privacy = self.privacy.assess(
             prompt
         )
 
@@ -77,6 +85,11 @@ class IntelligentRouter:
             profile = get_model_by_tier(
                 current_tier
             )
+
+            if privacy.requires_local:
+                self.privacy_policy.assert_local_model(
+                    profile.model_name
+                )
 
             automatic_thinking = (
                 self._should_enable_thinking(
@@ -148,6 +161,15 @@ class IntelligentRouter:
 
         final_profile = get_model_by_tier(
             current_tier
+        )
+
+        privacy_policy = (
+            self.privacy_policy.evaluate(
+                assessment=privacy,
+                selected_model=(
+                    final_profile.model_name
+                ),
+            )
         )
 
         explanation = (
@@ -225,6 +247,8 @@ class IntelligentRouter:
             response=final_result["response"],
             confidence=final_confidence,
             escalation=escalation,
+            privacy=privacy,
+            privacy_policy=privacy_policy,
             prompt_tokens=(
                 final_result["prompt_tokens"]
             ),

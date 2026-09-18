@@ -10,7 +10,7 @@ from app.api.routing import router as routing_router
 app = FastAPI(
     title="AURA API",
     description="Adaptive Unified Routing Architecture for Multi-LLM Systems",
-    version="0.7.0",
+    version="0.8.0",
 )
 
 app.include_router(ollama_router)
@@ -26,7 +26,7 @@ def root():
         "name": "AURA",
         "full_name": "Adaptive Unified Routing Architecture",
         "status": "running",
-        "version": "0.7.0",
+        "version": "0.8.0",
     }
 
 
