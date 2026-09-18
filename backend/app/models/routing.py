@@ -2,6 +2,10 @@
 
 from pydantic import BaseModel, Field
 
+from app.models.confidence import (
+    ConfidenceEvaluation,
+    EscalationSummary,
+)
 from app.models.query_analysis import QueryAnalysis
 
 
@@ -62,6 +66,9 @@ class RoutedResponse(BaseModel):
     prompt: str
     routing: RoutingDecision
     response: str
+
+    confidence: ConfidenceEvaluation | None = None
+    escalation: EscalationSummary | None = None
 
     prompt_tokens: int | None = None
     output_tokens: int | None = None
