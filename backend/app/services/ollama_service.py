@@ -2,6 +2,8 @@
 
 import httpx
 
+from app.core.response_sanitizer import sanitize_model_response
+
 
 class OllamaService:
     """
@@ -80,9 +82,15 @@ class OllamaService:
 
         data = response.json()
 
+        raw_response = data.get("response", "")
+
+        clean_response = sanitize_model_response(
+            raw_response
+        )
+
         return {
             "model": data.get("model", model),
-            "response": data.get("response", "").strip(),
+            "response": clean_response,
             "thinking": data.get("thinking"),
             "done": data.get("done", False),
             "total_duration": data.get("total_duration"),
