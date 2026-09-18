@@ -37,6 +37,8 @@ export default function RoutePromptPage() {
   const [routeResult, setRouteResult] =
     useState<RoutedResponse | null>(null)
   const [routing, setRouting] = useState(false)
+  const [routingStage, setRoutingStage] =
+    useState<'analyzing' | 'generating'>('analyzing')
   const [routingError, setRoutingError] =
     useState<string | null>(null)
 
@@ -53,6 +55,7 @@ export default function RoutePromptPage() {
 
     try {
       setRouting(true)
+      setRoutingStage('analyzing')
       setRoutingError(null)
       setAnalysis(null)
       setRouteResult(null)
@@ -62,6 +65,7 @@ export default function RoutePromptPage() {
       })
       setAnalysis(analysisResult)
 
+      setRoutingStage('generating')
       const routed = await routePrompt({
         prompt: cleanPrompt,
         override_tier: overrideTier || null,
@@ -140,11 +144,30 @@ export default function RoutePromptPage() {
                 disabled={routing}
                 type="submit"
               >
-                {routing ? 'Routing...' : 'Route Prompt'}
+                {routing
+                  ? routingStage === 'analyzing'
+                    ? 'Analyzing...'
+                    : 'Generating...'
+                  : 'Route Prompt'}
                 <span aria-hidden="true">→</span>
               </button>
             </div>
           </form>
+
+          {routing && (
+            <div
+              aria-live="polite"
+              className="route-loading"
+              role="status"
+            >
+              <span className="loading-spinner" aria-hidden="true" />
+              <span>
+                {routingStage === 'analyzing'
+                  ? 'Analyzing prompt...'
+                  : 'Generating response...'}
+              </span>
+            </div>
+          )}
 
           {routingError && (
             <div className="route-error" role="alert">

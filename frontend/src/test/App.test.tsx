@@ -1,6 +1,7 @@
 import {
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -59,6 +60,19 @@ function jsonResponse(payload: unknown) {
       },
     }),
   )
+}
+
+
+function deferredResponse() {
+  let resolvePromise: (response: Response) => void = () => {}
+  const promise = new Promise<Response>((resolve) => {
+    resolvePromise = resolve
+  })
+
+  return {
+    promise,
+    resolve: resolvePromise,
+  }
 }
 
 
@@ -226,7 +240,7 @@ function multiResponse() {
 
 function LocationProbe() {
   const location = useLocation()
-  return <output data-testid="location">{location.pathname}</output>
+  return <div data-testid="location">{location.pathname}</div>
 }
 
 
@@ -381,8 +395,123 @@ describe('AURA routed dashboard', () => {
     )
 
     await screen.findByText('alice@example.com')
-    expect(fetchMock.mock.calls.some(([input]) => input.toString().endsWith('/analysis'))).toBe(true)
-    expect(fetchMock.mock.calls.some(([input]) => input.toString().endsWith('/route'))).toBe(true)
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        input.toString().endsWith('/analysis'),
+      ),
+    ).toHaveLength(1)
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        input.toString().endsWith('/route'),
+      ),
+    ).toHaveLength(1)
+
+    await userEvent.click(
+      within(routePage).getByRole('button', {
+        name: /Route Prompt/i,
+      }),
+    )
+    await screen.findByText('alice@example.com')
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        input.toString().endsWith('/route'),
+      ),
+    ).toHaveLength(2)
+  })
+
+  it('shows stage-aware loading and clears it after success', async () => {
+    const analysisPending = deferredResponse()
+    const routePending = deferredResponse()
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = input.toString()
+
+      if (url.endsWith('/health')) {
+        return jsonResponse(healthResponse)
+      }
+      if (url.endsWith('/models')) {
+        return jsonResponse(modelsResponse)
+      }
+      if (url.endsWith('/analysis')) {
+        return analysisPending.promise
+      }
+      if (url.endsWith('/route')) {
+        return routePending.promise
+      }
+
+      throw new Error(`Unexpected URL: ${url}`)
+    })
+
+    renderApp('/route')
+    await screen.findByText('System healthy')
+
+    const routePage = screen.getByRole('heading', {
+      name: 'Route a prompt',
+    }).closest('article') as HTMLElement
+    const submitButton = within(routePage).getByRole('button', {
+      name: /Route Prompt/i,
+    })
+
+    await userEvent.click(submitButton)
+
+    expect(submitButton).toBeDisabled()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Analyzing prompt...',
+    )
+
+    analysisPending.resolve(
+      await jsonResponse(routeResponse().routing.analysis),
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Generating response...',
+      )
+    })
+
+    routePending.resolve(await jsonResponse(routeResponse()))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    })
+    expect(fetchMock.mock.calls.some(([input]) =>
+      input.toString().endsWith('/route'),
+    )).toBe(true)
+  })
+
+  it('clears loading feedback when routing fails', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = input.toString()
+
+      if (url.endsWith('/health')) {
+        return jsonResponse(healthResponse)
+      }
+      if (url.endsWith('/models')) {
+        return jsonResponse(modelsResponse)
+      }
+      if (url.endsWith('/analysis')) {
+        return jsonResponse(routeResponse().routing.analysis)
+      }
+      if (url.endsWith('/route')) {
+        return Promise.reject(new Error('Route request failed'))
+      }
+
+      throw new Error(`Unexpected URL: ${url}`)
+    })
+
+    renderApp('/route')
+    await screen.findByText('System healthy')
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: /Route Prompt/i,
+      }),
+    )
+
+    await screen.findByRole('alert')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([input]) =>
+      input.toString().endsWith('/route'),
+    )).toBe(true)
   })
 
   it('submits Multi-Task through the multi-route API', async () => {
