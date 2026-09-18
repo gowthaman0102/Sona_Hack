@@ -132,3 +132,92 @@ def test_score_is_bounded():
         <= result.complexity_score
         <= 10
     )
+
+
+def test_action_only_analysis_prompt_is_low_and_not_reasoning_required():
+    result = analyzer.analyze("Analyse")
+
+    assert result.task_type == "analysis"
+    assert result.complexity_score <= 3
+    assert result.recommended_tier == "low"
+    assert result.reasoning_required is False
+
+
+def test_action_only_prompts_do_not_inherit_expensive_task_routing():
+    for prompt in (
+        "Analyze",
+        "Explain",
+        "Plan",
+        "Debug",
+        "Summarize",
+    ):
+        result = analyzer.analyze(prompt)
+
+        assert result.complexity_score <= 3
+        assert result.recommended_tier == "low"
+
+
+def test_short_analysis_with_context_is_higher_than_action_only_but_not_high():
+    bare = analyzer.analyze("Analyse")
+    result = analyzer.analyze("Analyse Python")
+
+    assert result.task_type == "analysis"
+    assert result.complexity_score > bare.complexity_score
+    assert result.recommended_tier != "high"
+
+
+def test_complete_explanation_remains_medium():
+    result = analyzer.analyze(
+        "Explain binary search."
+    )
+
+    assert result.task_type == "explanation"
+    assert result.recommended_tier == "medium"
+
+
+def test_complete_complex_analysis_remains_high():
+    result = analyzer.analyze(
+        (
+            "Analyse the advantages and disadvantages of "
+            "microservices architecture for a banking system, "
+            "compare operational risks, scaling trade-offs, "
+            "and recommend a migration strategy."
+        )
+    )
+
+    assert result.task_type == "analysis"
+    assert result.reasoning_required is True
+    assert result.recommended_tier == "high"
+
+
+def test_detailed_migration_plan_remains_high():
+    result = analyzer.analyze(
+        (
+            "Create a migration plan from SQLite to PostgreSQL "
+            "including rollback, downtime, validation, and "
+            "risk mitigation."
+        )
+    )
+
+    assert result.task_type == "planning"
+    assert result.reasoning_required is True
+    assert result.recommended_tier == "high"
+
+
+def test_simple_extraction_transformation_and_summary_remain_low_or_medium():
+    extraction = analyzer.analyze(
+        'Extract the email from "Contact alice@example.com".'
+    )
+    transformation = analyzer.analyze(
+        'Convert "hello aura" to uppercase.'
+    )
+    summary = analyzer.analyze(
+        'Summarize this sentence: "Project meeting is Monday."'
+    )
+
+    assert extraction.task_type == "extraction"
+    assert extraction.recommended_tier == "low"
+    assert transformation.task_type == "transformation"
+    assert transformation.recommended_tier == "low"
+    assert summary.task_type == "summarization"
+    assert summary.recommended_tier != "high"

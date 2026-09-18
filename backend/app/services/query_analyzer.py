@@ -170,6 +170,26 @@ class QueryAnalyzer:
         "general": 2,
     }
 
+    COMPLETENESS_STOPWORDS = {
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "for",
+        "from",
+        "in",
+        "is",
+        "it",
+        "of",
+        "please",
+        "the",
+        "this",
+        "that",
+        "to",
+        "with",
+    }
+
     def analyze(self, prompt: str) -> QueryAnalysis:
         text = prompt.strip().lower()
 
@@ -189,6 +209,17 @@ class QueryAnalyzer:
 
         has_multiple_requirements = (
             self._has_multiple_requirements(text)
+        )
+
+        meaningful_word_count = (
+            self._meaningful_word_count(text)
+        )
+
+        is_underspecified = (
+            self._is_underspecified(
+                text=text,
+                meaningful_word_count=meaningful_word_count,
+            )
         )
 
         score = self.BASE_SCORES[task_type]
@@ -230,17 +261,49 @@ class QueryAnalyzer:
                 "multiple requirements detected"
             )
 
+        if is_underspecified:
+            score -= (
+                5
+                if task_type in {
+                    "analysis",
+                    "planning",
+                }
+                else 3
+            )
+            reasons.append(
+                "underspecified action prompt"
+            )
+
+        elif (
+            meaningful_word_count < 2
+            and task_type in {
+                "analysis",
+                "planning",
+                "coding",
+            }
+        ):
+            score -= 2
+            reasons.append(
+                "limited task context"
+            )
+
         score = max(
             1,
             min(score, 10),
         )
 
         reasoning_required = (
-            score >= 7
-            or task_type in {
-                "analysis",
-                "planning",
-            }
+            not is_underspecified
+            and (
+                score >= 7
+                or (
+                    task_type in {
+                        "analysis",
+                        "planning",
+                    }
+                    and meaningful_word_count >= 2
+                )
+            )
         )
 
         if score <= 3:
@@ -345,6 +408,42 @@ class QueryAnalyzer:
         return any(
             marker in text
             for marker in markers
+        )
+
+    def _meaningful_word_count(
+        self,
+        text: str,
+    ) -> int:
+        words = re.findall(
+            r"\b[a-z0-9][a-z0-9_-]*\b",
+            text,
+        )
+
+        action_words = {
+            marker
+            for marker in self.ACTION_MARKERS
+            if " " not in marker
+        }
+
+        return sum(
+            word not in self.COMPLETENESS_STOPWORDS
+            and word not in action_words
+            for word in words
+        )
+
+    def _is_underspecified(
+        self,
+        text: str,
+        meaningful_word_count: int,
+    ) -> bool:
+        if meaningful_word_count > 0:
+            return False
+
+        return not bool(
+            re.search(
+                r"[\"'].*?[\"']|:\s*\S",
+                text,
+            )
         )
 
     def _has_multiple_requirements(
