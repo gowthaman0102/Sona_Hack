@@ -295,6 +295,10 @@ h2 {
   display: grid;
   gap: 18px;
   margin-bottom: 18px;
+
+.single-page-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
 }
 
 .content-grid {

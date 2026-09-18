@@ -165,6 +165,17 @@ Frontend URL:
 http://localhost:5173
 ```
 
+Dashboard pages:
+
+| Page | URL |
+| --- | --- |
+| Overview | `http://localhost:5173/` |
+| Route Prompt | `http://localhost:5173/route` |
+| Multi-Task | `http://localhost:5173/multi-task` |
+
+The sidebar remains visible across pages, and the frontend uses client-side
+React Router navigation. Unknown frontend paths redirect to the Overview page.
+
 The frontend uses http://127.0.0.1:8000 as the default backend API.
 
 The backend URL can be overridden using VITE_API_BASE_URL.

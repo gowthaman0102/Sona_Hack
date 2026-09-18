@@ -1,13 +1,13 @@
-﻿import {
-  fireEvent,
+import {
   render,
   screen,
-  waitFor,
   within,
 } from '@testing-library/react'
-
 import userEvent from '@testing-library/user-event'
-
+import {
+  MemoryRouter,
+  useLocation,
+} from 'react-router-dom'
 import {
   beforeEach,
   describe,
@@ -31,695 +31,387 @@ const modelsResponse = {
     {
       tier: 'low',
       model_name: 'qwen3:1.7b',
-      display_name: 'Qwen3 1.7B',
-      parameter_size: '1.7B',
       compute_score: 1,
-      expected_speed: 'fast',
       description: 'Low tier',
-      installed: true,
     },
     {
       tier: 'medium',
       model_name: 'qwen3:4b',
-      display_name: 'Qwen3 4B',
-      parameter_size: '4B',
       compute_score: 2,
-      expected_speed: 'balanced',
       description: 'Medium tier',
-      installed: true,
     },
     {
       tier: 'high',
       model_name: 'qwen3:8b',
-      display_name: 'Qwen3 8B',
-      parameter_size: '8B',
       compute_score: 4,
-      expected_speed: 'slower',
       description: 'High tier',
-      installed: true,
     },
   ],
 }
 
 
-function jsonResponse(
-  payload: unknown,
-) {
+function jsonResponse(payload: unknown) {
   return Promise.resolve(
-    new Response(
-      JSON.stringify(payload),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
       },
-    ),
+    }),
   )
 }
 
 
-describe('AURA dashboard', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks()
-
-    vi
-      .spyOn(
-        Element.prototype,
-        'scrollIntoView',
-      )
-      .mockImplementation(
-        () => {},
-      )
-  })
-
-
-  it('loads live system health and models', async () => {
-    vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation(
-        (input) => {
-          const url =
-            input.toString()
-
-          if (url.endsWith('/health')) {
-            return jsonResponse(
-              healthResponse,
-            )
-          }
-
-          if (url.endsWith('/models')) {
-            return jsonResponse(
-              modelsResponse,
-            )
-          }
-
-          throw new Error(
-            `Unexpected URL: ${url}`,
-          )
-        },
-      )
-
-    render(
-      <App />,
-    )
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          'System healthy',
-        ),
-      ).toBeInTheDocument()
-    })
-
-    expect(
-      screen.getByText(
-        'qwen3:1.7b',
-      ),
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByText(
-        'qwen3:4b',
-      ),
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByText(
-        'qwen3:8b',
-      ),
-    ).toBeInTheDocument()
-  })
-
-
-  it('switches active navigation and scrolls to multi-task', async () => {
-    const scrollSpy =
-      vi.mocked(
-        Element.prototype.scrollIntoView,
-      )
-
-    vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation(
-        (input) => {
-          const url =
-            input.toString()
-
-          if (url.endsWith('/health')) {
-            return jsonResponse(
-              healthResponse,
-            )
-          }
-
-          if (url.endsWith('/models')) {
-            return jsonResponse(
-              modelsResponse,
-            )
-          }
-
-          throw new Error(
-            `Unexpected URL: ${url}`,
-          )
-        },
-      )
-
-    render(
-      <App />,
-    )
-
-    const multiTaskButton =
-      screen.getByRole(
-        'button',
-        {
-          name: 'Multi-Task',
-        },
-      )
-
-    await userEvent.click(
-      multiTaskButton,
-    )
-
-    expect(
-      multiTaskButton,
-    ).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-
-    expect(
-      scrollSpy,
-    ).toHaveBeenCalled()
-  })
-
-
-  it('renders a real-looking single-route result', async () => {
-    vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation(
-        (input) => {
-          const url =
-            input.toString()
-
-          if (url.endsWith('/health')) {
-            return jsonResponse(
-              healthResponse,
-            )
-          }
-
-          if (url.endsWith('/models')) {
-            return jsonResponse(
-              modelsResponse,
-            )
-          }
-
-          if (url.endsWith('/analysis')) {
-            return jsonResponse({
-              task_type: 'extraction',
-              complexity_score: 1,
-              reasoning_required: false,
-              recommended_tier: 'low',
-              explanation: 'extraction task baseline',
-              features: {
-                word_count: 8,
-                has_code: false,
-                has_reasoning_markers: false,
-                has_multiple_requirements: false,
-              },
-            })
-          }
-
-          if (url.endsWith('/route')) {
-            return jsonResponse({
-              prompt:
-                'Extract alice@example.com',
-              routing: {
-                recommended_tier: 'low',
-                selected_tier: 'low',
-                selected_model: 'qwen3:1.7b',
-                compute_score: 1,
-                override_applied: false,
-                thinking_override_applied: false,
-                thinking_enabled: false,
-                analysis: {
-                  task_type: 'extraction',
-                  complexity_score: 1,
-                  reasoning_required: false,
-                  recommended_tier: 'low',
-                  explanation: 'extraction task baseline',
-                  features: {
-                    word_count: 8,
-                    has_code: false,
-                    has_reasoning_markers: false,
-                    has_multiple_requirements: false,
-                  },
-                },
-                explanation: {
-                  summary: 'LOW selected',
-                  selection_reason: 'Simple extraction',
-                  complexity_reason: 'Low complexity',
-                  reasoning_reason: 'No deep reasoning needed',
-                  compute_quality_tradeoff: 'Lowest compute tier',
-                  override_reason: null,
-                  signals: [],
-                },
-              },
-              response:
-                'alice@example.com',
-              confidence: {
-                score: 1,
-                level: 'high',
-                should_escalate: false,
-                reasons: [],
-                response_word_count: 1,
-              },
-              escalation: {
-                escalated: false,
-                initial_tier: 'low',
-                final_tier: 'low',
-                reason: 'No escalation required.',
-                attempts: [
-                  {
-                    tier: 'low',
-                    model_name: 'qwen3:1.7b',
-                    confidence_score: 1,
-                    confidence_level: 'high',
-                    should_escalate: false,
-                    reasons: [],
-                  },
-                ],
-              },
-              privacy: {
-                contains_sensitive_data: true,
-                risk_level: 'medium',
-                requires_local: true,
-                categories: [
-                  'email',
-                ],
-                signals: [
-                  'email_detected',
-                ],
-              },
-              privacy_policy: {
-                privacy_enforced: true,
-                execution_scope: 'local_only',
-                external_routing_allowed: false,
-                selected_model_is_local: true,
-                reason: 'Sensitive data requires local execution.',
-              },
-              analytics: {
-                attempt_count: 1,
-                total_prompt_tokens: 40,
-                total_output_tokens: 16,
-                total_tokens: 56,
-                total_latency_seconds: 2.698,
-                normalized_compute_cost: 2.698,
-                final_attempt_compute_cost: 2.698,
-                escalation_overhead_compute: 0,
-                attempts: [
-                  {
-                    tier: 'low',
-                    model_name: 'qwen3:1.7b',
-                    compute_score: 1,
-                    confidence_score: 1,
-                    confidence_level: 'high',
-                    should_escalate: false,
-                    prompt_tokens: 40,
-                    output_tokens: 16,
-                    total_tokens: 56,
-                    latency_seconds: 2.698,
-                    tokens_per_second: 5.93,
-                    normalized_compute_cost: 2.698,
-                  },
-                ],
-              },
-            })
-          }
-
-          throw new Error(
-            `Unexpected URL: ${url}`,
-          )
-        },
-      )
-
-    const { container } = render(
-      <App />,
-    )
-
-    await screen.findByText(
-      'System healthy',
-    )
-
-    const routePanel =
-      container.querySelector(
-        '#route-prompt',
-      )
-
-    expect(
-      routePanel,
-    ).not.toBeNull()
-
-    const routeScope =
-      within(
-        routePanel as HTMLElement,
-      )
-
-    const prompt =
-      routeScope.getByLabelText(
-        'Prompt',
-      )
-
-    fireEvent.change(
-      prompt,
-      {
-        target: {
-          value:
-            'Extract alice@example.com',
+function routeResponse() {
+  return {
+    prompt: 'Extract alice@example.com',
+    routing: {
+      recommended_tier: 'low',
+      selected_tier: 'low',
+      selected_model: 'qwen3:1.7b',
+      compute_score: 1,
+      override_applied: false,
+      thinking_override_applied: false,
+      thinking_enabled: false,
+      analysis: {
+        task_type: 'extraction',
+        complexity_score: 1,
+        reasoning_required: false,
+        recommended_tier: 'low',
+        explanation: 'extraction task baseline',
+        features: {
+          word_count: 2,
+          has_code: false,
+          has_reasoning_markers: false,
+          has_multiple_requirements: false,
         },
       },
-    )
+      explanation: {
+        summary: 'LOW selected',
+        selection_reason: 'Simple extraction',
+        complexity_reason: 'Low complexity',
+        reasoning_reason: 'No deep reasoning needed',
+        compute_quality_tradeoff: 'Lowest compute tier',
+        override_reason: '',
+        signals: [],
+      },
+    },
+    response: 'alice@example.com',
+    confidence: {
+      score: 1,
+      level: 'high',
+      should_escalate: false,
+      reasons: [],
+      response_word_count: 1,
+    },
+    escalation: {
+      escalated: false,
+      initial_tier: 'low',
+      final_tier: 'low',
+      reason: 'No escalation required.',
+      attempts: [],
+    },
+    privacy: {
+      contains_sensitive_data: true,
+      risk_level: 'medium',
+      requires_local: true,
+      categories: ['email'],
+      signals: ['email_detected'],
+    },
+    privacy_policy: {
+      privacy_enforced: true,
+      execution_scope: 'local_only',
+      external_routing_allowed: false,
+      selected_model_is_local: true,
+      reason: 'Sensitive data requires local execution.',
+    },
+    analytics: {
+      attempt_count: 1,
+      total_prompt_tokens: 10,
+      total_output_tokens: 1,
+      total_tokens: 11,
+      total_latency_seconds: 0.2,
+      normalized_compute_cost: 0.2,
+      final_attempt_compute_cost: 0.2,
+      escalation_overhead_compute: 0,
+      attempts: [],
+    },
+  }
+}
 
-    await userEvent.click(
-      routeScope.getByRole(
-        'button',
-        {
-          name: /Route Prompt/i,
+
+function multiResponse() {
+  return {
+    original_prompt: 'Extract email',
+    is_multi_task: true,
+    task_count: 1,
+    tasks: [
+      {
+        index: 1,
+        task: 'Extract email',
+        task_type: 'extraction',
+        recommended_tier: 'low',
+        selected_tier: 'low',
+        selected_model: 'qwen3:1.7b',
+        compute_score: 1,
+        thinking_enabled: false,
+        response: 'alice@example.com',
+        confidence: {
+          score: 1,
+          level: 'high',
+          should_escalate: false,
+          reasons: [],
+          response_word_count: 1,
         },
-      ),
-    )
+        escalation: {
+          escalated: false,
+          initial_tier: 'low',
+          final_tier: 'low',
+          reason: 'No escalation required.',
+          attempts: [],
+        },
+        privacy: {
+          contains_sensitive_data: true,
+          risk_level: 'medium',
+          requires_local: true,
+          categories: ['email'],
+          signals: ['email_detected'],
+        },
+        privacy_policy: {
+          privacy_enforced: true,
+          execution_scope: 'local_only',
+          external_routing_allowed: false,
+          selected_model_is_local: true,
+          reason: 'Sensitive data requires local execution.',
+        },
+        analytics: {
+          attempt_count: 1,
+          total_prompt_tokens: 10,
+          total_output_tokens: 1,
+          total_tokens: 11,
+          total_latency_seconds: 0.2,
+          normalized_compute_cost: 0.2,
+          final_attempt_compute_cost: 0.2,
+          escalation_overhead_compute: 0,
+          attempts: [],
+        },
+      },
+    ],
+    privacy: {
+      contains_sensitive_data: true,
+      risk_level: 'medium',
+      requires_local: true,
+      categories: ['email'],
+      signals: ['email_detected'],
+    },
+    analytics: {
+      task_count: 1,
+      total_attempt_count: 1,
+      total_prompt_tokens: 10,
+      total_output_tokens: 1,
+      total_tokens: 11,
+      total_latency_seconds: 0.2,
+      normalized_compute_cost: 0.2,
+      final_attempt_compute_cost: 0.2,
+      escalation_overhead_compute: 0,
+    },
+    aggregated_response: 'Task 1 - Extraction\nalice@example.com',
+    total_prompt_tokens: 10,
+    total_output_tokens: 1,
+    total_latency_seconds: 0.2,
+    total_compute_score: 1,
+  }
+}
 
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          'alice@example.com',
-        ),
-      ).toBeInTheDocument()
-    })
 
-    expect(
-      routeScope.getByText(
-        'qwen3:1.7b',
-      ),
-    ).toBeInTheDocument()
+function LocationProbe() {
+  const location = useLocation()
+  return <output data-testid="location">{location.pathname}</output>
+}
 
-    expect(
-      screen.getByText(
-        'local_only',
-      ),
-    ).toBeInTheDocument()
+
+function renderApp(initialEntry = '/') {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <LocationProbe />
+      <App />
+    </MemoryRouter>,
+  )
+}
+
+
+function mockSystemFetch() {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = input.toString()
+
+    if (url.endsWith('/health')) {
+      return jsonResponse(healthResponse)
+    }
+
+    if (url.endsWith('/models')) {
+      return jsonResponse(modelsResponse)
+    }
+
+    throw new Error(`Unexpected URL: ${url}`)
+  })
+}
+
+
+describe('AURA routed dashboard', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
   })
 
-
-  it('renders multi-task results', async () => {
-    vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation(
-        (input) => {
-          const url =
-            input.toString()
-
-          if (url.endsWith('/health')) {
-            return jsonResponse(
-              healthResponse,
-            )
-          }
-
-          if (url.endsWith('/models')) {
-            return jsonResponse(
-              modelsResponse,
-            )
-          }
-
-          if (url.endsWith('/multi-route')) {
-            return jsonResponse({
-              original_prompt:
-                'Extract and summarize',
-              is_multi_task: true,
-              task_count: 2,
-              tasks: [
-                {
-                  index: 1,
-                  task: 'Extract email',
-                  task_type: 'extraction',
-                  recommended_tier: 'low',
-                  selected_tier: 'low',
-                  selected_model: 'qwen3:1.7b',
-                  compute_score: 1,
-                  thinking_enabled: false,
-                  response: 'alice@example.com',
-                  confidence: {
-                    score: 1,
-                    level: 'high',
-                    should_escalate: false,
-                    reasons: [],
-                    response_word_count: 1,
-                  },
-                  escalation: {
-                    escalated: false,
-                    initial_tier: 'low',
-                    final_tier: 'low',
-                    reason: 'No escalation',
-                    attempts: [
-                      {
-                        tier: 'low',
-                        model_name: 'qwen3:1.7b',
-                        confidence_score: 1,
-                        confidence_level: 'high',
-                        should_escalate: false,
-                        reasons: [],
-                      },
-                    ],
-                  },
-                  privacy: {
-                    contains_sensitive_data: true,
-                    risk_level: 'medium',
-                    requires_local: true,
-                    categories: ['email'],
-                    signals: ['email_detected'],
-                  },
-                  privacy_policy: {
-                    privacy_enforced: true,
-                    execution_scope: 'local_only',
-                    external_routing_allowed: false,
-                    selected_model_is_local: true,
-                    reason: 'Local execution required',
-                  },
-                  analytics: {
-                    attempt_count: 1,
-                    total_prompt_tokens: 50,
-                    total_output_tokens: 10,
-                    total_tokens: 60,
-                    total_latency_seconds: 1,
-                    normalized_compute_cost: 1,
-                    final_attempt_compute_cost: 1,
-                    escalation_overhead_compute: 0,
-                    attempts: [],
-                  },
-                },
-                {
-                  index: 2,
-                  task: 'Summarize indexes',
-                  task_type: 'summarization',
-                  recommended_tier: 'medium',
-                  selected_tier: 'medium',
-                  selected_model: 'qwen3:4b',
-                  compute_score: 2,
-                  thinking_enabled: false,
-                  response: 'Indexes reduce scan work.',
-                  confidence: {
-                    score: 1,
-                    level: 'high',
-                    should_escalate: false,
-                    reasons: [],
-                    response_word_count: 4,
-                  },
-                  escalation: {
-                    escalated: false,
-                    initial_tier: 'medium',
-                    final_tier: 'medium',
-                    reason: 'No escalation',
-                    attempts: [
-                      {
-                        tier: 'medium',
-                        model_name: 'qwen3:4b',
-                        confidence_score: 1,
-                        confidence_level: 'high',
-                        should_escalate: false,
-                        reasons: [],
-                      },
-                    ],
-                  },
-                  privacy: {
-                    contains_sensitive_data: true,
-                    risk_level: 'medium',
-                    requires_local: true,
-                    categories: ['email'],
-                    signals: ['email_detected'],
-                  },
-                  privacy_policy: {
-                    privacy_enforced: true,
-                    execution_scope: 'local_only',
-                    external_routing_allowed: false,
-                    selected_model_is_local: true,
-                    reason: 'Local execution required',
-                  },
-                  analytics: {
-                    attempt_count: 1,
-                    total_prompt_tokens: 80,
-                    total_output_tokens: 20,
-                    total_tokens: 100,
-                    total_latency_seconds: 2,
-                    normalized_compute_cost: 4,
-                    final_attempt_compute_cost: 4,
-                    escalation_overhead_compute: 0,
-                    attempts: [],
-                  },
-                },
-              ],
-              privacy: {
-                contains_sensitive_data: true,
-                risk_level: 'medium',
-                requires_local: true,
-                categories: ['email'],
-                signals: ['email_detected'],
-              },
-              analytics: {
-                task_count: 2,
-                total_attempt_count: 2,
-                total_prompt_tokens: 130,
-                total_output_tokens: 30,
-                total_tokens: 160,
-                total_latency_seconds: 3,
-                normalized_compute_cost: 5,
-                final_attempt_compute_cost: 5,
-                escalation_overhead_compute: 0,
-              },
-              aggregated_response:
-                'Task 1 - Extraction\nalice@example.com\n\nTask 2 - Summarization\nIndexes reduce scan work.',
-              total_prompt_tokens: 130,
-              total_output_tokens: 30,
-              total_latency_seconds: 3,
-              total_compute_score: 3,
-            })
-          }
-
-          throw new Error(
-            `Unexpected URL: ${url}`,
-          )
-        },
-      )
-
-    const { container } = render(
-      <App />,
-    )
-
-    await screen.findByText(
-      'System healthy',
-    )
-
-    const multiTaskPanel =
-      container.querySelector(
-        '#multi-task',
-      )
-
-    expect(
-      multiTaskPanel,
-    ).not.toBeNull()
-
-    const multiTaskScope =
-      within(
-        multiTaskPanel as HTMLElement,
-      )
-
-    await userEvent.click(
-      multiTaskScope.getByRole(
-        'button',
-        {
-          name: /Route Multi-Task/i,
-        },
-      ),
-    )
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          'Indexes reduce scan work.',
-        ),
-      ).toBeInTheDocument()
-    })
-
-    expect(
-      screen.getByText(
-        'Aggregated Response',
-      ),
-    ).toBeInTheDocument()
-
-    expect(
-      multiTaskScope.getByText(
-        'qwen3:4b',
-      ),
-    ).toBeInTheDocument()
-  })
-
-
-  it('exposes only the final primary navigation entries', async () => {
-    vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation(
-        (input) => {
-          const url = input.toString()
-
-          if (url.endsWith('/health')) {
-            return jsonResponse(healthResponse)
-          }
-
-          if (url.endsWith('/models')) {
-            return jsonResponse(modelsResponse)
-          }
-
-          throw new Error(`Unexpected URL: ${url}`)
-        },
-      )
-
-    render(<App />)
+  it('renders Overview at the root route', async () => {
+    mockSystemFetch()
+    renderApp('/')
 
     await screen.findByText('System healthy')
 
+    expect(screen.getByText('Architecture status')).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/')
+  })
+
+  it('renders Route Prompt at /route', async () => {
+    mockSystemFetch()
+    renderApp('/route')
+
+    await screen.findByText('System healthy')
+
+    expect(screen.getByRole('heading', { name: 'Route a prompt' }))
+      .toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/route')
+  })
+
+  it('renders Multi-Task at /multi-task', async () => {
+    mockSystemFetch()
+    renderApp('/multi-task')
+
+    await screen.findByText('System healthy')
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'Decompose and route multiple tasks',
+      }),
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/multi-task')
+  })
+
+  it('navigates with sidebar links and updates the active link', async () => {
+    mockSystemFetch()
+    renderApp('/')
+
+    await screen.findByText('System healthy')
     const navigation = screen.getByRole('navigation', {
       name: 'Primary navigation',
     })
 
-    expect(
-      within(navigation).getAllByRole('button'),
-    ).toHaveLength(3)
-
-    expect(
-      within(navigation).getByRole('button', {
-        name: 'Overview',
-      }),
-    ).toBeInTheDocument()
-
-    expect(
-      within(navigation).getByRole('button', {
+    await userEvent.click(
+      within(navigation).getByRole('link', {
         name: 'Route Prompt',
       }),
-    ).toBeInTheDocument()
+    )
 
+    expect(screen.getByTestId('location')).toHaveTextContent('/route')
     expect(
-      within(navigation).getByRole('button', {
+      within(navigation).getByRole('link', {
+        name: 'Route Prompt',
+      }),
+    ).toHaveAttribute('aria-current', 'page')
+
+    await userEvent.click(
+      within(navigation).getByRole('link', {
         name: 'Multi-Task',
       }),
-    ).toBeInTheDocument()
+    )
+    expect(screen.getByTestId('location')).toHaveTextContent('/multi-task')
 
-    expect(
-      within(navigation).queryByRole('button', {
-        name: 'Analytics',
+    await userEvent.click(
+      within(navigation).getByRole('link', {
+        name: 'Overview',
       }),
-    ).not.toBeInTheDocument()
+    )
+    expect(screen.getByTestId('location')).toHaveTextContent('/')
+  })
 
-    expect(
-      within(navigation).queryByRole('button', {
-        name: 'Learning',
+  it('redirects unknown routes to Overview', async () => {
+    mockSystemFetch()
+    renderApp('/not-a-real-page')
+
+    await screen.findByText('Architecture status')
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/')
+  })
+
+  it('submits Route Prompt through analysis and route APIs', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = input.toString()
+
+      if (url.endsWith('/health')) {
+        return jsonResponse(healthResponse)
+      }
+      if (url.endsWith('/models')) {
+        return jsonResponse(modelsResponse)
+      }
+      if (url.endsWith('/analysis')) {
+        return jsonResponse(routeResponse().routing.analysis)
+      }
+      if (url.endsWith('/route')) {
+        return jsonResponse(routeResponse())
+      }
+
+      throw new Error(`Unexpected URL: ${url}`)
+    })
+
+    renderApp('/route')
+    await screen.findByText('System healthy')
+
+    const routePage = screen.getByRole('heading', {
+      name: 'Route a prompt',
+    }).closest('article') as HTMLElement
+    await userEvent.clear(within(routePage).getByLabelText('Prompt'))
+    await userEvent.type(
+      within(routePage).getByLabelText('Prompt'),
+      'Extract alice@example.com',
+    )
+    await userEvent.click(
+      within(routePage).getByRole('button', {
+        name: /Route Prompt/i,
       }),
-    ).not.toBeInTheDocument()
+    )
+
+    await screen.findByText('alice@example.com')
+    expect(fetchMock.mock.calls.some(([input]) => input.toString().endsWith('/analysis'))).toBe(true)
+    expect(fetchMock.mock.calls.some(([input]) => input.toString().endsWith('/route'))).toBe(true)
+  })
+
+  it('submits Multi-Task through the multi-route API', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = input.toString()
+
+      if (url.endsWith('/health')) {
+        return jsonResponse(healthResponse)
+      }
+      if (url.endsWith('/models')) {
+        return jsonResponse(modelsResponse)
+      }
+      if (url.endsWith('/multi-route')) {
+        return jsonResponse(multiResponse())
+      }
+
+      throw new Error(`Unexpected URL: ${url}`)
+    })
+
+    renderApp('/multi-task')
+    await screen.findByText('System healthy')
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: /Route Multi-Task/i,
+      }),
+    )
+
+    await screen.findByText('alice@example.com')
+    expect(fetchMock.mock.calls.some(([input]) => input.toString().endsWith('/multi-route'))).toBe(true)
+    expect(screen.getByText('Task 1')).toBeInTheDocument()
   })
 })
